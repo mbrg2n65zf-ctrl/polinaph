@@ -101,15 +101,49 @@ const RS=['новый запрос','на рассмотрении','одобр�
 let D=(()=>{try{return JSON.parse(localStorage.getItem('pk2'))}catch(e){return null}})()||{svc:S0,add:A0,ord:[],ref:[],docs:Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]])),seq:1};
 const ADM_OK=/admin/.test(location.hash+location.search)||(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initDataUnsafe&&Telegram.WebApp.initDataUnsafe.start_param)=='admin';
 let st={tab:'port',cat:'feat',adm:false,at:'ord'};
-const save=()=>{try{localStorage.setItem('pk2',JSON.stringify(D))}catch(e){}};
+let SRV=false,PERR='',TOKEN=(()=>{try{const t=localStorage.getItem('pk_tok')||'';return +t.split('.')[0]>Date.now()?t:''}catch(e){return ''}})();
+const MYK='pk_my',myList=()=>{try{return JSON.parse(localStorage.getItem(MYK))||[]}catch(e){return[]}};
+const fileUrl=p=>'/api/file?p='+encodeURIComponent(p);
+async function api(path,o={}){
+ const h={...(o.headers||{})};if(TOKEN&&o.auth!==false)h.Authorization='Bearer '+TOKEN;
+ let body=o.body;if(body&&typeof body==='object'&&!(body instanceof Blob)){body=JSON.stringify(body);h['Content-Type']='application/json'}
+ const r=await fetch(path,{method:o.method||'GET',headers:h,body});let d=null;try{d=await r.json()}catch(e){}
+ if(!r.ok){if(r.status==401&&TOKEN&&path!='/api/login'){TOKEN='';try{localStorage.removeItem('pk_tok')}catch(e){}st.adm=false;render()}throw new Error((d&&d.error)||('Ошибка '+r.status))}
+ return d}
+function applyState(p){D.svc=p.svc;D.add=p.add;D.docs=p.docs;PH=p.PH;PH.f=PH.f||[];PH.s=PH.s||[];PH.a=PH.a||[];
+ for(const id of [...PH.s.map(x=>x.id),...PH.a.flatMap(a=>a.ph)])IMG[id]=fileUrl('photos/'+id+'.jpg')}
+async function loadMine(){D.ord=(await Promise.all(myList().map(m=>api('/api/order?id='+m.id+'&k='+m.k,{auth:false}).then(r=>r.order).catch(()=>null)))).filter(Boolean).sort((a,b)=>b.id-a.id)}
+async function initServer(){
+ try{const r=await api('/api/state',{auth:false});SRV=true;D.ord=[];D.ref=[];
+  if(r.pub)applyState(r.pub);
+  else{D.svc=S0.map(x=>({...x}));D.add=A0.map(x=>({...x}));D.docs=Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]]));PH={s:[],a:[],q:1,f:[]}}
+  await loadMine();render()}catch(e){}}
+let SNAP={},syncT=null;
+const snap=()=>{SNAP={};D.ord.forEach(o=>SNAP[o.id]=JSON.stringify(o))};
+function scheduleSync(){clearTimeout(syncT);syncT=setTimeout(doSync,700)}
+async function doSync(){if(!SRV||!TOKEN)return;
+ try{await api('/api/state',{method:'POST',body:{pub:{svc:D.svc,add:D.add,docs:D.docs,PH},ref:D.ref}});
+  for(const o of D.ord){const j=JSON.stringify(o);if(SNAP[o.id]!==j){await api('/api/order',{method:'POST',body:{action:'admin',order:o}});SNAP[o.id]=j}}
+  toast('Сохранено на сервере')}catch(e){toast('Не удалось сохранить: '+e.message)}}
+const save=()=>{if(SRV){if(TOKEN&&st.adm)scheduleSync();return}try{localStorage.setItem('pk2',JSON.stringify(D))}catch(e){}};
+function admToggle(){
+ if(st.adm){st.adm=false;st.tab='port';render();if(SRV)loadMine().then(render);return}
+ if(!SRV){st.adm=true;st.tab='adm';render();return}
+ if(TOKEN)return enterAdm();
+ modal(`<h2>Вход для фотографа</h2><label>Пароль<input id="apw" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')admLogin()"></label><br><button class="btn" onclick="admLogin()">Войти</button>`)}
+async function admLogin(){try{const r=await api('/api/login',{method:'POST',body:{password:$('#apw').value},auth:false});TOKEN=r.token;try{localStorage.setItem('pk_tok',TOKEN)}catch(e){}closeM();enterAdm()}catch(e){toast(e.message)}}
+async function enterAdm(){try{const [a,o]=await Promise.all([api('/api/state'),api('/api/orders')]);if(a.pub)applyState(a.pub);D.ref=a.ref||[];D.ord=o.orders;snap();st.adm=true;st.tab='adm';render()}catch(e){toast(e.message)}}
+const shrinkB=f=>new Promise((res,rej)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?res(b):rej(new Error('не удалось обработать фото')),'image/jpeg',.82)};im.onerror=()=>rej(new Error('формат не поддерживается (HEIC?), сохраните как JPEG'));im.src=u});
+async function storeImg(id,f){if(SRV){const b=await shrinkB(f);await api('/api/upload?p='+encodeURIComponent('photos/'+id+'.jpg'),{method:'POST',body:b,headers:{'Content-Type':'image/jpeg'}});return fileUrl('photos/'+id+'.jpg')}const u=await shrink(f);await idbPut(id,u);return u}
+
 const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)};
 const log=(o,t)=>o.log.unshift(now()+' — '+t);
 const ord=id=>D.ord.find(o=>o.id==id);
-function go(t){st.tab=t;render()}
+function go(t){st.tab=t;render();if(t=='my'&&SRV&&!st.adm)loadMine().then(render)}
 function render(){
  const T=[['port','Портфолио'],['svc','Услуги'],['my','Мои заказы']];if(st.adm)T.push(['adm','Админка']);
  $('#nav').innerHTML=T.map(t=>`<button class="${st.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('');
- $('#app').innerHTML=({port,svc,my,adm})[st.tab]()+`<p class="mut" style="margin-top:30px">${(ADM_OK||st.adm)?`<a href="#" onclick="st.adm=!st.adm;st.tab=st.adm?'adm':'port';render();return false" style="color:var(--mut)">${st.adm?'Выйти из режима фотографа':'Режим фотографа (демо)'}</a><br>`:''}Демо-прототип: данные хранятся только в этом браузере. В рабочей версии права проверяет сервер.</p>`;
+ $('#app').innerHTML=({port,svc,my,adm})[st.tab]()+`<p class="mut" style="margin-top:30px">${(ADM_OK||st.adm)?`<a href="#" onclick="admToggle();return false" style="color:var(--mut)">${st.adm?'Выйти из режима фотографа':(SRV?'Вход для фотографа':'Режим фотографа (демо)')}</a><br>`:''}${SRV?'':'Демо-прототип: данные хранятся только в этом браузере. В рабочей версии права проверяет сервер.'}</p>`;
 }
 const TL=[['ind','Индивидуальные'],['love','Love Story'],['preg','Беременность'],['fam','Семейные истории'],['wed','Свадьбы'],['rep','Репортаж']];
 function port(){
@@ -126,7 +160,7 @@ const WA=[{n:'Анна и Михаил',s:'Камерная свадьба',h:20
 const phBg=(h,i)=>`linear-gradient(160deg,hsl(${h},22%,${89-(i%5)*3}%),hsl(${h},18%,${78-(i%4)*3}%))`;
 let PH=(()=>{try{return JSON.parse(localStorage.getItem('pk_ph'))}catch(e){return null}})()||{s:[],a:[],q:1,f:[]};PH.f=PH.f||[];
 const IMG={};let idb=null;
-const phSave=()=>{try{localStorage.setItem('pk_ph',JSON.stringify(PH))}catch(e){toast('Не удалось сохранить список фото')}};
+const phSave=()=>{if(SRV){if(TOKEN&&st.adm)scheduleSync();return}try{localStorage.setItem('pk_ph',JSON.stringify(PH))}catch(e){toast('Не удалось сохранить список фото')}};
 const idbOpen=()=>new Promise(r=>{try{const q=indexedDB.open('pk_img',1);q.onupgradeneeded=()=>q.result.createObjectStore('i');q.onsuccess=()=>{idb=q.result;r()};q.onerror=()=>r();q.onblocked=()=>r()}catch(e){r()}});
 const idbPut=(k,v)=>new Promise(r=>{if(!idb)return r();try{const t=idb.transaction('i','readwrite');t.objectStore('i').put(v,k);t.oncomplete=()=>r();t.onerror=()=>r()}catch(e){r()}});
 const idbDel=k=>{try{if(idb)idb.transaction('i','readwrite').objectStore('i').delete(k)}catch(e){}};
@@ -139,8 +173,8 @@ async function phUp(inp){
  else if(dest[0]=='a')alb=PH.a.find(a=>a.id==dest);
  if(dest!='new'&&dest[0]=='a'&&!alb)return;
  let n=0;
- for(const f of files){try{const id='p'+PH.q++,u=await shrink(f);IMG[id]=u;await idbPut(id,u);alb?alb.ph.push(id):PH.s.push({id,cat:dest});n++;toast('Загружено '+n+' из '+files.length)}catch(e){}}
- phSave();render();toast(n?'Загружено фото: '+n:'Не удалось загрузить файлы')
+ for(const f of files){try{const id='p'+PH.q++,u=await storeImg(id,f);IMG[id]=u;alb?alb.ph.push(id):PH.s.push({id,cat:dest});n++;toast('Загружено '+n+' из '+files.length)}catch(e){PERR=(e&&e.message)||''}}
+ phSave();render();toast(n?'Загружено фото: '+n+(SRV?' (сохраняю…)':''):'Не удалось загрузить: '+(PERR||'файл не подошёл'))
 }
 function albSet(id,k,v){const a=PH.a.find(x=>x.id==id);if(a){a[k]=v;phSave()}}
 function phDel(aid,id){if(aid){const a=PH.a.find(x=>x.id==aid);a.ph=a.ph.filter(x=>x!=id)}else PH.s=PH.s.filter(p=>p.id!=id);delete IMG[id];idbDel(id);PH.f=PH.f.filter(x=>x!=id);phSave();render();toast('Фото удалено')}
@@ -156,7 +190,7 @@ function featHTML(){return PH.f.length?`<div style="${GR}">${PH.f.map((id,i)=>`<
 const GR='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0';
 function phoHTML(){
  const d=st.pd||'ind';
- let h=`<div class="warn">Фото сжимаются до 1600 px и хранятся в этом браузере (макет). В рабочей версии они уходят на сервер, и их видят все клиенты. Пока фото не загружены, на сайте показываются примерные плитки.</div>
+ let h=`<div class="warn">${SRV?'Фото сжимаются до 1600 px и сохраняются на сервере: их видят все клиенты. Пока фото не загружены, на сайте показываются примерные плитки.':'Фото сжимаются до 1600 px и хранятся в этом браузере (макет). Пока фото не загружены, на сайте показываются примерные плитки.'}</div>
  <div class="card"><label>Куда загрузить<select onchange="st.pd=this.value;render()">${TL.filter(t=>t[0]!='wed').map(t=>`<option value="${t[0]}" ${d==t[0]?'selected':''}>${t[1]}</option>`).join('')}${PH.a.map(a=>`<option value="${a.id}" ${d==a.id?'selected':''}>Свадьбы → ${esc(a.name)}</option>`).join('')}<option value="new" ${d=='new'?'selected':''}>Свадьбы → новый альбом…</option></select></label>${d=='new'?`<label>Название нового альбома<input id="pnew" placeholder="Например: Анна и Михаил"></label>`:''}<label>Фотографии (можно выбрать несколько)<input type="file" accept="image/*" multiple onchange="phUp(this)"></label></div>
  <h2>Главная страница</h2><p class="mut">Эти фото клиенты видят первыми, в разделе «Избранное». Порядок меняют стрелки. Все остальные фото видны в разделах по темам.</p>${featHTML()}<h2>Свадебные альбомы</h2>`;
  h+=PH.a.length?PH.a.map(a=>`<div class="card"><label>Название<input value="${esc(a.name)}" onchange="albSet('${a.id}','name',this.value)"></label><label>Подпись (тип съёмки)<input value="${esc(a.sub)}" onchange="albSet('${a.id}','sub',this.value)"></label><div class="mut">${a.ph.length} фото. Обложка — первое фото, звёздочка делает обложкой другое.</div><div style="${GR}">${a.ph.map(id=>thumb(id,a.id)).join('')}</div><button class="btn r" onclick="albAsk('${a.id}')">Удалить альбом</button></div>`).join(''):'<p class="mut">Альбомов пока нет: выберите «новый альбом» выше.</p>';
@@ -197,15 +231,16 @@ const closeM=(id='modal')=>{const m=$('#'+id);m.style.display='none';if(id=='mod
 const isPdf=f=>/pdf/i.test(f.m||'')||/\.pdf$/i.test(f.n||'');
 function docBody(d){
  if(!d.f)return `<p>${esc(d.t)}</p>`;
- const b=IMG[d.f.k];if(!b)return `<p>Файл «${esc(d.f.n)}» недоступен в этом браузере: в макете файлы хранятся только там, где их загрузили.</p>`;
- const u=URL.createObjectURL(isPdf(d.f)&&!b.type?new Blob([b],{type:'application/pdf'}):b);
+ const b=(SRV&&d.f.p)||IMG[d.f.k];if(!b)return `<p>Файл «${esc(d.f.n)}» недоступен в этом браузере: в макете файлы хранятся только там, где их загрузили.</p>`;
+ const u=(SRV&&d.f.p)?fileUrl(d.f.p):URL.createObjectURL(isPdf(d.f)&&!b.type?new Blob([b],{type:'application/pdf'}):b);
  return (isPdf(d.f)?`<iframe src="${u}" title="${esc(d.f.n)}" style="width:100%;height:60vh;border:1px solid var(--bd);margin-bottom:10px"></iframe>`:`<p>Документ «${esc(d.f.n)}» открывается в программе для чтения документов.</p>`)+`<p><a href="${u}" target="_blank" rel="noopener" download="${esc(d.f.n)}" style="color:var(--ac)">Открыть или скачать файл</a></p>`}
 function showDoc(k){const d=D.docs[k].at(-1);modal(`<h2>${DN[k]} (ред. ${d.v})</h2>`+docBody(d),'modal2')}
 async function docUp(k,inp){const f=inp.files[0];if(!f)return;
  if(!/\.(pdf|docx?|odt|rtf|txt)$/i.test(f.name)){toast('Нужен файл PDF, DOC, DOCX, ODT, RTF или TXT');inp.value='';return}
- if(f.size>10*1024*1024){toast('Файл больше 10 МБ');inp.value='';return}
- const key='d'+Date.now();IMG[key]=f;await idbPut(key,f);
- D.docs[k].push({v:D.docs[k].length+1,d:now(),f:{k:key,n:f.name,m:f.type||'',s:f.size}});save();render();toast('Загружена новая редакция')}
+ const lim=SRV?4:10;if(f.size>lim*1024*1024){toast('Файл больше '+lim+' МБ');inp.value='';return}
+ const key='d'+Date.now(),ext=(f.name.match(/\.[a-z0-9]+$/i)||['.pdf'])[0].toLowerCase(),p='docs/'+key+ext;
+ try{if(SRV)await api('/api/upload?p='+encodeURIComponent(p),{method:'POST',body:f,headers:{'Content-Type':f.type||'application/octet-stream'}});else{IMG[key]=f;await idbPut(key,f)}}catch(e){toast('Не удалось загрузить: '+e.message);return}
+ D.docs[k].push({v:D.docs[k].length+1,d:now(),f:{k:key,n:f.name,m:f.type||'',s:f.size,p:SRV?p:undefined}});save();render();toast(SRV?'Редакция загружена, сохраняю…':'Загружена новая редакция')}
 function docLink(k){const d=D.docs[k].at(-1);return `<a href="#" style="color:var(--ac)" onclick="event.preventDefault();showDoc('${k}')">${DN[k]}</a>`}
 function openOrder(id){
  const s=D.svc.find(x=>x.id==id),ad=D.add.filter(a=>a.on&&a.cat==s.cat);
@@ -222,10 +257,12 @@ function openOrder(id){
 }
 function addons(id){return [...document.querySelectorAll('.ad:checked')].map(c=>D.add.find(a=>a.id==c.value)).map(a=>({name:a.name,price:a.price==null?Math.round(D.svc.find(x=>x.id==id).full*a.pct/100):a.price}))}
 function calc(id){$('#tot').textContent=rub(D.svc.find(x=>x.id==id).full+addons(id).reduce((s,a)=>s+a.price,0))}
-function submitOrder(id){
+async function submitOrder(id){
  const v=i=>$('#'+i).value.trim(),s=D.svc.find(x=>x.id==id);
  if(!v('f_n')||!v('f_c')||!v('f_d')||!v('f_g'))return toast('Заполните обязательные поля');
  if(!['c1','c2','c3'].every(i=>$('#'+i).checked))return toast('Подтвердите все три пункта (галочки не ставятся заранее)');
+ if(SRV){try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'create',order:{svcId:s.id,adIds:[...document.querySelectorAll('.ad:checked')].map(c=>+c.value),name:v('f_n'),contact:v('f_c'),date:v('f_d'),time:v('f_t'),city:v('f_g'),com:v('f_m'),accepted:true}}});const o=r.order,L=myList();L.push({id:o.id,k:o.k});try{localStorage.setItem(MYK,JSON.stringify(L))}catch(e){}D.ord.unshift(o);
+  modal(`<h2>Заявка №${o.id} принята</h2><p>Желаемая дата ${esc(o.date)} <span class="tag">не подтверждена</span> — её согласует фотограф.</p>${payBlock(o)}`);render()}catch(e){toast(e.message)}return}
  const ad=addons(id),o={id:D.seq++,name:v('f_n'),contact:v('f_c'),date:v('f_d'),time:v('f_t'),city:v('f_g'),com:v('f_m'),svc:s.name,cat:s.cat,ad,
  total:s.full+ad.reduce((a,b)=>a+b.price,0),first:s.first,paid:0,status:'Ожидает оплаты',pay:'Ожидает оплаты',note:'',log:[],
  acc:['contract','privacy','consent'].map(k=>({doc:DN[k],ver:D.docs[k].at(-1).v,at:now(),how:'чекбокс в приложении'}))};
@@ -233,7 +270,7 @@ function submitOrder(id){
  modal(`<h2>Заявка №${o.id} принята</h2><p>Желаемая дата ${esc(o.date)} <span class="tag">не подтверждена</span> — её согласует фотограф.</p>${payBlock(o)}`);render();
 }
 function payBlock(o){return o.first==null?'<p class="mut">Размер первого платежа определит фотограф — мы сообщим.</p>':`<div class="warn"><b>ТЕСТОВЫЙ платёж.</b> Реальные деньги не списываются.</div><button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} (тест)</button>`}
-function pay(id){const o=ord(id);o.paid=o.first;o.pay='Успешен (ТЕСТ)';o.status='Оплачен, ожидает консультации';log(o,'Тестовый платёж '+rub(o.first)+' — не реальные деньги');save();closeM();toast('Тестовый платёж выполнен');render()}
+async function pay(id){if(SRV){const o=ord(id);try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'pay',id,k:o.k}});Object.assign(o,r.order);closeM();toast('Тестовый платёж выполнен');render()}catch(e){toast(e.message)}return}const o=ord(id);o.paid=o.first;o.pay='Успешен (ТЕСТ)';o.status='Оплачен, ожидает консультации';log(o,'Тестовый платёж '+rub(o.first)+' — не реальные деньги');save();closeM();toast('Тестовый платёж выполнен');render()}
 function my(){return `<h1>Мои заказы</h1>`+(D.ord.length?D.ord.map(o=>`<div class="card"><div class="row"><b>№${o.id} · ${esc(o.svc)}</b><span class="tag">${o.status}</span></div>
  <div class="mut">Желаемая дата: ${esc(o.date)} ${o.cdate?'':'<span class="tag">не подтверждена</span>'}${o.cdate?'· подтверждена: '+esc(o.cdate):''}<br>Итого: ${rub(o.total)} · оплата: ${o.pay}${o.paid?' (учтено '+rub(o.paid)+')':''}${o.alt?'<br>Фотограф предложил дату: '+esc(o.alt):''}</div>
  ${o.status=='Ожидает оплаты'&&o.first!=null?payBlock(o):''}</div>`).join(''):'<p class="mut">Заказов пока нет.</p>')}
@@ -281,14 +318,14 @@ function admBody(){
  if(st.at=='ref')return `<div class="warn">Сумма расчёта не вычисляется автоматически: решение принимает администратор с учётом договора, фактически оказанных услуг, подтверждённых расходов и закона. Отметка «консультация проведена» сама по себе не основание для удержания.</div>`+(D.ref.length?D.ref.map((r,i)=>{const o=ord(r.oid);return `<div class="card"><b>Заказ №${r.oid}</b> · инициатор: ${r.by}<div class="mut">Оплачено: ${rub(o.paid)} (${o.pay}) · причина: ${esc(r.reason)}</div>
   <select onchange="D.ref[${i}].st=this.value;log(ord(${r.oid}),'Возврат: '+this.value);save()">${RS.map(s=>`<option ${s==r.st?'selected':''}>${s}</option>`).join('')}</select>
   <input type="number" placeholder="Утверждённая сумма, ₽" value="${r.amt}" onchange="D.ref[${i}].amt=this.value;save()"><input placeholder="Основание решения" value="${esc(r.note)}" onchange="D.ref[${i}].note=this.value;save()"></div>`}).join(''):'<p class="mut">Запросов нет.</p>');
- return Object.keys(DN).map(k=>{const d=D.docs[k].at(-1);return `<div class="card"><b>${DN[k]}</b><div class="mut">Текущая редакция: ${d.v} · ${d.f?esc(d.f.n)+' ('+Math.max(1,Math.round(d.f.s/1024))+' КБ)':'временный текст-заглушка'} · ${esc(d.d)} · всего версий: ${D.docs[k].length}. Принятые заказами версии остаются неизменными.</div><div class="row" style="margin:10px 0"><button class="btn s" onclick="showDoc('${k}')">Посмотреть</button></div><label>Загрузить новую редакцию (PDF, DOC, DOCX, до 10 МБ)<input type="file" accept=".pdf,.doc,.docx,.odt,.rtf,.txt,application/pdf" onchange="docUp('${k}',this)"></label></div>`}).join('');
+ return Object.keys(DN).map(k=>{const d=D.docs[k].at(-1);return `<div class="card"><b>${DN[k]}</b><div class="mut">Текущая редакция: ${d.v} · ${d.f?esc(d.f.n)+' ('+Math.max(1,Math.round(d.f.s/1024))+' КБ)':'временный текст-заглушка'} · ${esc(d.d)} · всего версий: ${D.docs[k].length}. Принятые заказами версии остаются неизменными.</div><div class="row" style="margin:10px 0"><button class="btn s" onclick="showDoc('${k}')">Посмотреть</button></div><label>Загрузить новую редакцию (PDF, DOC, DOCX, до ${SRV?4:10} МБ)<input type="file" accept=".pdf,.doc,.docx,.odt,.rtf,.txt,application/pdf" onchange="docUp('${k}',this)"></label></div>`}).join('');
 }
 function svcSet(id,k,v){const s=D.svc.find(x=>x.id==id);if(s){s[k]=v;save()}}
 function addSvc(){D.svc.unshift({id:Math.max(0,...D.svc.map(s=>s.id))+1,cat:'ind',name:'Новый тариф',desc:'',del:'—',full:0,first:null,on:false});save();render();toast('Тариф создан и пока скрыт от клиентов')}
 function askDel(id){const s=D.svc.find(x=>x.id==id);modal(`<h2>Удалить тариф?</h2><p>«${esc(s.name)}» исчезнет из каталога. Уже созданные заказы не изменятся.</p><button class="btn r" onclick="delSvc(${id})">Удалить</button>`)}
 function delSvc(id){D.svc=D.svc.filter(s=>s.id!=id);save();closeM();render();toast('Тариф удалён')}
 render();
-idbOpen().then(idbAll).then(()=>{if(PH.s.length||PH.a.length)render()});
+initServer().then(()=>{if(!SRV)return idbOpen().then(idbAll).then(()=>{if(PH.s.length||PH.a.length)render()})});
 (function(){const T=window.Telegram&&Telegram.WebApp;if(!T)return;
  try{T.ready();T.expand();T.setHeaderColor('#ffffff');T.setBackgroundColor('#ffffff');if(T.disableVerticalSwipes)T.disableVerticalSwipes()}catch(e){}
  const top=()=>$('#vw').style.display=='block'?'vw':$('#modal2').style.display=='flex'?'m2':$('#modal').style.display=='flex'?'m':null;
