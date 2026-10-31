@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Полина Кушнаренко — фотограф</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500&family=Manrope:wght@500;600;700&family=Marck+Script&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--fg:#111;--mut:#6b6b6b;--card:#fff;--ac:#111;--on:#fff;--bd:#e3e3e3;--ok:#111;--wn:#111;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#000;--fg:#fff;--mut:#a3a3a3;--card:#111;--ac:#fff;--on:#000;--bd:#2b2b2b;--ok:#fff;--wn:#fff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#000;--fg:#fff;--mut:#a3a3a3;--card:#111;--ac:#fff;--on:#000;--bd:#2b2b2b;--ok:#fff;--wn:#fff;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;max-width:640px;margin:auto}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;display:flex;gap:4px;padding:8px;background:var(--bg);border-bottom:1px solid var(--bd);overflow-x:auto}
+nav button,.chip{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:20px;padding:7px 14px;font:inherit;cursor:pointer}
+.chips{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;padding:2px 0 10px;margin:8px -12px 4px;padding-left:12px;padding-right:12px;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}.chip{white-space:nowrap;min-height:40px;display:inline-flex;align-items:center}.chip:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+nav button.on,.chip.on{background:var(--ac);color:var(--on);border-color:var(--ac)}
+main{padding:12px}h1{font:600 26px Georgia,serif;margin:4px 0}h2{font:600 18px Georgia,serif;margin:18px 0 8px}
+.mut{color:var(--mut);font-size:13px}.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin:8px 0}
+.btn{background:var(--ac);color:var(--on);border:0;border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer;margin:2px 4px 2px 0}
+.btn.s{background:transparent;color:var(--ac);border:1px solid var(--ac)}.btn.r{background:#b33}
+.warn{border-left:4px solid var(--wn);background:var(--card);padding:8px 10px;border-radius:8px;font-size:13px;margin:8px 0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tile{aspect-ratio:3/4;border-radius:12px;display:flex;align-items:flex-end;padding:8px;color:#fff;font-size:12px;cursor:pointer}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;margin:3px 0 8px}
+input[type=checkbox]{width:auto;margin:3px 8px 0 0}label{font-size:13px;display:block}.ck{display:flex;align-items:flex-start;margin:6px 0}
+.tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;background:var(--bd)}.tag.t{background:var(--wn);color:var(--on)}.tag.g{background:var(--ok);color:var(--on)}
+.row{display:flex;justify-content:space-between;gap:8px}#modal,#modal2{position:fixed;inset:0;background:#0009;z-index:20;display:none;align-items:flex-end;justify-content:center}
+#modal>div,#modal2>div{background:var(--bg);width:100%;max-width:640px;max-height:92%;overflow:auto;border-radius:18px 18px 0 0;padding:16px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:20px;display:none;z-index:30}
+.log{font-size:12px;color:var(--mut);border-top:1px dashed var(--bd);margin-top:6px;padding-top:4px}
+:root:root:root{--bg:#fff;--fg:#161616;--mut:#77736F;--card:#fff;--ac:#161616;--on:#fff;--bd:#e7e3dd;--ok:#161616;--wn:#783F46;--wine:#783F46;color-scheme:light}
+body{font-family:Inter,system-ui,sans-serif;line-height:1.55;max-width:560px}
+main{padding:8px 20px 48px}
+h1,h2{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;letter-spacing:-.01em}
+h1{font-size:56px;line-height:.95;margin:6px 0 14px}h2{font-size:30px;margin:34px 0 8px}
+nav{gap:24px;padding:12px 20px}
+nav button{border:0;border-radius:0;background:none;padding:6px 0;color:var(--mut);border-bottom:1.5px solid transparent}
+nav button.on{background:none;color:var(--fg);border-bottom-color:var(--wine)}
+.chips{margin:22px -20px 10px;padding:0 20px 6px;gap:24px}
+.chip{border:0;border-radius:0;background:none;padding:6px 0;color:var(--mut);border-bottom:1.5px solid transparent}
+.chip.on{background:none;color:var(--fg);border-bottom-color:var(--wine)}
+.card{border:0;border-top:1px solid var(--bd);border-radius:0;background:none;padding:20px 0;margin:0}
+.card b,.card.row span b{font:500 25px "Cormorant Garamond",Georgia,serif}
+.btn{border-radius:0;padding:13px 24px;letter-spacing:.02em;margin:2px 8px 2px 0}
+.btn.s{border-color:var(--fg);color:var(--fg)}
+.grid{align-items:start;gap:10px}
+.tile{border-radius:0;aspect-ratio:4/5;color:rgba(0,0,0,.5)}
+.tile:nth-child(4n+1){aspect-ratio:3/4}.tile:nth-child(4n+2),.tile:nth-child(4n+3){aspect-ratio:1}
+input,select,textarea{border-radius:0;background:#fff}
+.warn{border-left-color:var(--wine);background:#faf8f5;border-radius:0}
+.tag{border-radius:0}.tag.t{background:var(--wine);color:#fff}
+#modal>div,#modal2>div{border-radius:0}
+#modal{z-index:26}#modal2{z-index:27}
+#vw{position:fixed;inset:0;background:var(--bg);color:var(--fg);z-index:60;overflow-y:auto;-webkit-overflow-scrolling:touch;max-width:560px;margin:0 auto}
+.vh{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top,0px)) 8px 8px;background:var(--bg);border-bottom:1px solid var(--bd)}
+.vbk{width:44px;height:44px;border:0;background:none;color:var(--fg);font-size:24px;cursor:pointer}
+.vp{scroll-margin-top:60px;margin-bottom:22px}.vp img,.vp .ph{display:block;width:100%}.vp .ph{aspect-ratio:4/5}
+.vcap{padding:8px 16px 0;font-size:13px;color:var(--mut)}
+.grid{margin-left:-20px;margin-right:-20px}.grid>[style*="grid-column"]:not(.alb){padding:0 20px}.alb{margin-bottom:18px}.alb .row,.alb>.mut{padding:0 20px}
+.alb{grid-column:1/-1;cursor:pointer}.alb .cv{aspect-ratio:4/3}
+.grid .tile{aspect-ratio:var(--ar,1)!important;overflow:hidden;width:100%}
+.grid .tile img{width:100%;height:100%;object-fit:cover;display:block}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}.grid .tile{font-size:10px}
+#up{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));right:max(16px,calc(50vw - 264px));width:48px;height:48px;border-radius:50%;border:0;background:rgba(22,22,22,.5);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:grid;place-items:center;cursor:pointer;z-index:25;opacity:0;pointer-events:none;transition:opacity .2s}#up.on{opacity:1;pointer-events:auto}
+h1,h2{font-family:Manrope,Inter,system-ui,sans-serif;letter-spacing:-.025em}
+h1{font-size:40px;font-weight:700;line-height:1.05;margin:0 0 14px}
+h2{font-size:22px;font-weight:600;margin:30px 0 8px}
+.card b,.card.row span b{font:600 16px/1.35 Manrope,Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.row{align-items:center}
+.nm{font:400 60px/1 "Marck Script","Segoe Script",cursive;letter-spacing:0;margin:0 0 16px;color:var(--fg)}
+.btn{border-radius:999px;padding:10px 20px;font-size:14px;font-weight:500;white-space:nowrap;letter-spacing:0}
+</style><meta name="theme-color" content="#ffffff">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head><body>
+<div id="top"></div><nav id="nav"></nav><main id="app"></main><div id="modal"></div><div id="modal2"></div><div id="toast"></div>
+<button id="up" aria-label="Наверх" onclick="toTop()"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 18V5M5 10.5 11 4.5l6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<div id="vw" role="dialog" aria-modal="true" aria-label="Фотографии" style="display:none"><div class="vh"><button class="vbk" onclick="vwClose()" aria-label="Назад">←</button><b id="vtt">Фото</b></div><div id="vfeed"></div></div>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const rub=n=>n==null?'определит фотограф':Number(n).toLocaleString('ru-RU')+' ₽',now=()=>new Date().toLocaleString('ru-RU');
+const CATS={ind:'Индивидуальные и другие съёмки',rep:'Репортаж',wed:'Свадебные съёмки'};
+const S0=[
+['ind','Мини','До 1 часа · до 25 фото · консультация и подбор локации','2–3 недели',20000,5000],
+['ind','Макси','До 2 часов · до 50 фото · консультация и подбор локации','2–3 недели',30000,7000],
+['ind','Съёмка ко дню рождения','До 1 часа · до 30 фото · видео в подарок','3–5 дней',20000,5000],
+['rep','Репортаж — 1 час','До 60 обработанных кадров за час','до 3 недель',15000,null],
+['rep','Репортаж — 4 часа','4 часа','—',43000,null],
+['rep','Репортаж — 6 часов','6 часов','—',65000,null],
+['rep','Репортаж — 8–10 часов','От 8 до 10 часов','—',75000,null],
+['wed','ЗАГС и прогулка','До 1,5 часа · до 70 фото · консультация и подбор локаций','4–5 недель',27000,7000],
+['wed','Камерная свадьба','До 3 часов · до 150 фото · консультация и подбор локаций','4–5 недель',40000,12000],
+['wed','Полдня','До 6 часов · до 300 фото · консультация и подбор локаций','4–5 недель',60000,18000],
+['wed','Свадебный день','До 10 часов · до 500 фото · консультация и подбор локаций','4–5 недель',90000,25000]
+].map((a,i)=>({id:i+1,cat:a[0],name:a[1],desc:a[2],del:a[3],full:a[4],first:a[5],on:true}));
+const A0=[['ind','Дополнительный час',15000],['ind','Мини-видео',8000],['ind','Фотокнига',10000],['ind','Ускоренная отдача фотографий',4000],
+['wed','Дополнительный час',12000],['wed','Срочная обработка (+10% к пакету)',null],['wed','Мини-видео',12000],['wed','Фотокнига',10000]]
+.map((a,i)=>({id:i+1,cat:a[0],name:a[1],price:a[2],pct:a[2]==null?10:0,on:true}));
+const DN={contract:'Договор оказания услуг',privacy:'Политика обработки персональных данных',consent:'Согласие на обработку персональных данных',terms:'Пользовательское соглашение'};
+const STUB='Текст предоставляет владелец проекта после проверки юристом. Здесь намеренно нет придуманных юридических условий.';
+const OS=['Ожидает оплаты','Оплачен, ожидает консультации','Консультация назначена','Консультация проведена','Ожидает решения фотографа','Сотрудничество подтверждено','Ожидает подтверждения даты','Дата подтверждена','В работе','Завершён','Запрошено прекращение договора','Ожидает расчёта взаиморасчётов','Отменён'];
+const RS=['новый запрос','на рассмотрении','одобрен','частичный возврат','отклонён (с основаниями)','возврат выполнен'];
+let D=(()=>{try{return JSON.parse(localStorage.getItem('pk2'))}catch(e){return null}})()||{svc:S0,add:A0,ord:[],ref:[],docs:Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]])),seq:1};
+const ADM_OK=/admin/.test(location.hash+location.search)||(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initDataUnsafe&&Telegram.WebApp.initDataUnsafe.start_param)=='admin';
+let st={tab:'port',cat:'feat',adm:false,at:'ord'};
+const save=()=>{try{localStorage.setItem('pk2',JSON.stringify(D))}catch(e){}};
+const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)};
+const log=(o,t)=>o.log.unshift(now()+' — '+t);
+const ord=id=>D.ord.find(o=>o.id==id);
+function go(t){st.tab=t;render()}
+function render(){
+ const T=[['port','Портфолио'],['svc','Услуги'],['my','Мои заказы']];if(st.adm)T.push(['adm','Админка']);
+ $('#nav').innerHTML=T.map(t=>`<button class="${st.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('');
+ $('#app').innerHTML=({port,svc,my,adm})[st.tab]()+`<p class="mut" style="margin-top:30px">${(ADM_OK||st.adm)?`<a href="#" onclick="st.adm=!st.adm;st.tab=st.adm?'adm':'port';render();return false" style="color:var(--mut)">${st.adm?'Выйти из режима фотографа':'Режим фотографа (демо)'}</a><br>`:''}Демо-прототип: данные хранятся только в этом браузере. В рабочей версии права проверяет сервер.</p>`;
+}
+const TL=[['ind','Индивидуальные'],['love','Love Story'],['preg','Беременность'],['fam','Семейные истории'],['wed','Свадьбы'],['rep','Репортаж']];
+function port(){
+ const t=TL.flatMap((c,i)=>[0,1].map(j=>[c,(i*50+j*25)%360]));
+ return `<p style="font:500 14px Manrope,Inter,sans-serif;color:var(--wine);margin:28px 0 8px">фотограф</p><h1>Полина<br>Кушнаренко</h1><p class="mut" style="max-width:34ch;font-size:15px">Живые, тёплые съёмки: портреты, семья, свадьбы и репортажи.</p>
+ <button class="btn" onclick="go('svc')">Услуги и цены</button><button class="btn s" onclick="toast('Контакт фотографа будет указан в настройках бота')">Связаться</button>
+ <div role="img" aria-label="Главное фото" style="margin:26px 0 0;aspect-ratio:4/5;background:linear-gradient(170deg,#f1ebe4,#d8cbc0);display:flex;align-items:flex-end;padding:14px;color:rgba(0,0,0,.45);font-size:12px">Здесь будет главное фото</div>
+ <div class="chips" role="group" aria-label="Альбомы">${[['feat','Избранное'],...TL].map(c=>`<button class="chip ${st.cat==c[0]?'on':''}" aria-pressed="${st.cat==c[0]}" onclick="setCat('${c[0]}')">${c[1]}</button>`).join('')}</div>
+ <div class="grid" id="gal">${galHTML()}</div>`;
+}
+function setCat(c){st.cat=c;st.alb=null;const d=document.createElement('div');d.innerHTML=port();$('#gal').innerHTML=d.querySelector('#gal').innerHTML;document.querySelectorAll('.chips .chip').forEach((b,i)=>{const on=(i==0?'feat':TL[i-1][0])==c;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)})}
+let VL=[],VI=0;
+const WA=[{n:'Анна и Михаил',s:'Камерная свадьба',h:20,c:14},{n:'Елена и Артём',s:'ЗАГС и прогулка',h:8,c:10},{n:'Мария и Дмитрий',s:'Свадебный день',h:34,c:18}];
+const phBg=(h,i)=>`linear-gradient(160deg,hsl(${h},22%,${89-(i%5)*3}%),hsl(${h},18%,${78-(i%4)*3}%))`;
+let PH=(()=>{try{return JSON.parse(localStorage.getItem('pk_ph'))}catch(e){return null}})()||{s:[],a:[],q:1,f:[]};PH.f=PH.f||[];
+const IMG={};let idb=null;
+const phSave=()=>{try{localStorage.setItem('pk_ph',JSON.stringify(PH))}catch(e){toast('Не удалось сохранить список фото')}};
+const idbOpen=()=>new Promise(r=>{try{const q=indexedDB.open('pk_img',1);q.onupgradeneeded=()=>q.result.createObjectStore('i');q.onsuccess=()=>{idb=q.result;r()};q.onerror=()=>r();q.onblocked=()=>r()}catch(e){r()}});
+const idbPut=(k,v)=>new Promise(r=>{if(!idb)return r();try{const t=idb.transaction('i','readwrite');t.objectStore('i').put(v,k);t.oncomplete=()=>r();t.onerror=()=>r()}catch(e){r()}});
+const idbDel=k=>{try{if(idb)idb.transaction('i','readwrite').objectStore('i').delete(k)}catch(e){}};
+const idbAll=()=>new Promise(r=>{if(!idb)return r();try{const q=idb.transaction('i').objectStore('i').openCursor();q.onsuccess=()=>{const c=q.result;if(c){IMG[c.key]=c.value;c.continue()}else r()};q.onerror=()=>r()}catch(e){r()}});
+const shrink=f=>new Promise((res,rej)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',.82))};im.onerror=()=>rej();im.src=u});
+async function phUp(inp){
+ const dest=st.pd||'ind',files=[...inp.files].filter(f=>f.type.startsWith('image/'));if(!files.length)return;
+ let alb=null;
+ if(dest=='new'){const n=(($('#pnew')||{}).value||'').trim();if(!n){toast('Сначала введите название альбома');inp.value='';return}alb={id:'a'+PH.q++,name:n,sub:'',ph:[]};PH.a.push(alb);st.pd=alb.id}
+ else if(dest[0]=='a')alb=PH.a.find(a=>a.id==dest);
+ if(dest!='new'&&dest[0]=='a'&&!alb)return;
+ let n=0;
+ for(const f of files){try{const id='p'+PH.q++,u=await shrink(f);IMG[id]=u;await idbPut(id,u);alb?alb.ph.push(id):PH.s.push({id,cat:dest});n++;toast('Загружено '+n+' из '+files.length)}catch(e){}}
+ phSave();render();toast(n?'Загружено фото: '+n:'Не удалось загрузить файлы')
+}
+function albSet(id,k,v){const a=PH.a.find(x=>x.id==id);if(a){a[k]=v;phSave()}}
+function phDel(aid,id){if(aid){const a=PH.a.find(x=>x.id==aid);a.ph=a.ph.filter(x=>x!=id)}else PH.s=PH.s.filter(p=>p.id!=id);delete IMG[id];idbDel(id);PH.f=PH.f.filter(x=>x!=id);phSave();render();toast('Фото удалено')}
+function phCover(aid,id){const a=PH.a.find(x=>x.id==aid);a.ph=[id,...a.ph.filter(x=>x!=id)];phSave();render()}
+function albAsk(id){const a=PH.a.find(x=>x.id==id);modal(`<h2>Удалить альбом?</h2><p>«${esc(a.name)}» и все его фото (${a.ph.length}) будут удалены.</p><button class="btn r" onclick="albDel('${id}')">Удалить</button>`)}
+function albDel(id){const a=PH.a.find(x=>x.id==id);a.ph.forEach(p=>{delete IMG[p];idbDel(p)});PH.f=PH.f.filter(x=>!a.ph.includes(x));PH.a=PH.a.filter(x=>x.id!=id);phSave();closeM();render();toast('Альбом удалён')}
+const SB='position:absolute;min-height:0;width:26px;height:26px;padding:0;border-radius:50%;font-size:13px';
+function phFeat(id){const i=PH.f.indexOf(id);i<0?PH.f.push(id):PH.f.splice(i,1);phSave();render()}
+function phMove(i,d){const f=PH.f,j=i+d;if(j<0||j>=f.length)return;[f[i],f[j]]=[f[j],f[i]];phSave();render()}
+const IM=id=>IMG[id]?`<img src="${IMG[id]}" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;display:block">`:`<div style="aspect-ratio:1;background:var(--bd)"></div>`;
+function thumb(id,aid){const on=PH.f.includes(id);return `<div style="position:relative">${IM(id)}<button class="btn r" style="${SB};top:3px;right:3px" aria-label="Удалить фото" onclick="phDel(${aid?`'${aid}'`:'null'},'${id}')">✕</button>${aid?`<button class="btn" style="${SB};bottom:3px;left:3px" aria-label="Сделать обложкой" onclick="phCover('${aid}','${id}')">★</button>`:''}<button class="btn" style="${SB};bottom:3px;right:3px" aria-label="${on?'Убрать с главной':'Показать на главной'}" aria-pressed="${on}" onclick="phFeat('${id}')">${on?'♥':'♡'}</button></div>`}
+function featHTML(){return PH.f.length?`<div style="${GR}">${PH.f.map((id,i)=>`<div style="position:relative">${IM(id)}<button class="btn r" style="${SB};top:3px;right:3px" aria-label="Убрать с главной" onclick="phFeat('${id}')">✕</button><button class="btn" style="${SB};bottom:3px;left:3px" aria-label="Левее" onclick="phMove(${i},-1)">‹</button><button class="btn" style="${SB};bottom:3px;right:3px" aria-label="Правее" onclick="phMove(${i},1)">›</button></div>`).join('')}</div>`:'<p class="mut">Пока пусто. Отметьте фото сердечком ♡ в альбомах и разделах ниже.</p>'}
+const GR='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0';
+function phoHTML(){
+ const d=st.pd||'ind';
+ let h=`<div class="warn">Фото сжимаются до 1600 px и хранятся в этом браузере (макет). В рабочей версии они уходят на сервер, и их видят все клиенты. Пока фото не загружены, на сайте показываются примерные плитки.</div>
+ <div class="card"><label>Куда загрузить<select onchange="st.pd=this.value;render()">${TL.filter(t=>t[0]!='wed').map(t=>`<option value="${t[0]}" ${d==t[0]?'selected':''}>${t[1]}</option>`).join('')}${PH.a.map(a=>`<option value="${a.id}" ${d==a.id?'selected':''}>Свадьбы → ${esc(a.name)}</option>`).join('')}<option value="new" ${d=='new'?'selected':''}>Свадьбы → новый альбом…</option></select></label>${d=='new'?`<label>Название нового альбома<input id="pnew" placeholder="Например: Анна и Михаил"></label>`:''}<label>Фотографии (можно выбрать несколько)<input type="file" accept="image/*" multiple onchange="phUp(this)"></label></div>
+ <h2>Главная страница</h2><p class="mut">Эти фото клиенты видят первыми, в разделе «Избранное». Порядок меняют стрелки. Все остальные фото видны в разделах по темам.</p>${featHTML()}<h2>Свадебные альбомы</h2>`;
+ h+=PH.a.length?PH.a.map(a=>`<div class="card"><label>Название<input value="${esc(a.name)}" onchange="albSet('${a.id}','name',this.value)"></label><label>Подпись (тип съёмки)<input value="${esc(a.sub)}" onchange="albSet('${a.id}','sub',this.value)"></label><div class="mut">${a.ph.length} фото. Обложка — первое фото, звёздочка делает обложкой другое.</div><div style="${GR}">${a.ph.map(id=>thumb(id,a.id)).join('')}</div><button class="btn r" onclick="albAsk('${a.id}')">Удалить альбом</button></div>`).join(''):'<p class="mut">Альбомов пока нет: выберите «новый альбом» выше.</p>';
+ TL.filter(t=>t[0]!='wed').forEach(t=>{const l=PH.s.filter(p=>p.cat==t[0]);h+=`<h2>${t[1]}</h2>`+(l.length?`<div style="${GR}">${l.map(p=>thumb(p.id,null)).join('')}</div>`:'<p class="mut">Фото пока нет.</p>')});
+ return h
+}
+function tilesOf(l){return l.map((p,i)=>p.u?`<div class="tile" role="button" tabindex="0" style="aspect-ratio:auto;background:none" onclick="vwOpen(${i})" onkeydown="if(event.key=='Enter')vwOpen(${i})"><img src="${p.u}" alt="" style="display:block;width:100%"></div>`:`<div class="tile" role="button" tabindex="0" style="background:${p.bg}" onclick="vwOpen(${i})" onkeydown="if(event.key=='Enter')vwOpen(${i})">${esc(p.t)}</div>`).join('')}
+const hasReal=()=>PH.s.length||PH.a.some(a=>a.ph.length);
+function wedA(){const r=PH.a.filter(a=>a.ph.length);return r.length?r.map(a=>({n:a.name,s:a.sub,c:a.ph.length,u:a.ph.map(id=>IMG[id]).filter(Boolean)})):(hasReal()?[]:WA)}
+const EMPTY='<p class="mut" style="grid-column:1/-1">В этой категории пока нет фотографий.</p>';
+function galHTML(){
+ if(st.cat=='wed'){
+  const A=wedA();if(!A.length)return EMPTY;
+  if(st.alb==null||!A[st.alb])return A.map((a,i)=>`<div class="alb" role="button" tabindex="0" onclick="openAlb(${i})" onkeydown="if(event.key=='Enter')openAlb(${i})"><div class="cv" style="background:${a.u?(a.u[0]?`url('${a.u[0]}') center/cover`:'var(--bd)'):phBg(a.h,0)}"></div><div class="row" style="margin-top:8px"><b>${esc(a.n)}</b><span class="mut">${a.c} фото</span></div><div class="mut">${esc(a.s)}</div></div>`).join('');
+  const a=A[st.alb];VL=a.u?a.u.map(u=>({u})):Array.from({length:a.c},(_,i)=>({bg:phBg(a.h+i*3,i),t:'Фото '+(i+1)}));
+  return `<div style="grid-column:1/-1"><button class="btn s" onclick="openAlb(null)">← Все альбомы</button><h2 style="margin:14px 0 2px">${esc(a.n)}</h2><div class="mut">${esc(a.s)} · ${a.c} фото</div></div>`+tilesOf(VL);
+ }
+ if(hasReal()){
+  if(st.cat=='feat'){VL=PH.f.map(id=>({u:IMG[id]})).filter(p=>p.u);if(!VL.length)return '<p class="mut" style="grid-column:1/-1">На главной пока ничего не выбрано.</p>'}
+  else VL=PH.s.filter(p=>p.cat==st.cat).map(p=>({u:IMG[p.id]})).filter(p=>p.u)}
+ else VL=TL.flatMap((c,i)=>[0,1].map(j=>[c,(i*50+j*25)%360])).filter(x=>st.cat=='feat'||x[0][0]==st.cat).map(x=>({bg:phBg(24+x[1]/14,x[1]%5),t:x[0][1]}));
+ return VL.length?tilesOf(VL):EMPTY;
+}
+function openAlb(i){st.alb=i;$('#gal').innerHTML=galHTML();scrollTo({top:Math.max(0,$('#gal').offsetTop-70)})}
+function vwOpen(i){VI=i;const A=st.cat=='wed'?wedA()[st.alb]:null;$('#vtt').textContent=A?A.n:'Фото';
+ $('#vfeed').innerHTML=VL.map((p,k)=>`<article class="vp" id="vp${k}">${p.u?`<img src="${p.u}" alt="" loading="lazy">`:`<div class="ph" style="background:${p.bg}"></div>`}<div class="vcap">${k+1} из ${VL.length}</div></article>`).join('');
+ const v=$('#vw');v.style.display='block';document.body.style.overflow='hidden';v.scrollTop=0;const e=$('#vp'+i);if(e&&e.scrollIntoView)e.scrollIntoView({block:'start'});$('#vw .vbk').focus()}
+function vwClose(){$('#vw').style.display='none';$('#vfeed').innerHTML='';document.body.style.overflow=''}
+document.addEventListener('keydown',e=>{if($('#vw').style.display=='block'&&e.key=='Escape')vwClose()});
+function svc(){
+ return `<h1>Услуги</h1><div class="warn">Цены предварительные (из черновика ТЗ) — перед запуском сверить с действующим прайсом.</div>`+
+ Object.entries(CATS).map(([k,n])=>`<h2>${n}</h2>`+D.svc.filter(s=>s.cat==k&&s.on).map(s=>`<div class="card"><b>${esc(s.name)}</b><div class="mut">${esc(s.desc)}<br>Готовность: ${esc(s.del)}</div>
+ <div class="row" style="margin-top:6px"><span>Полная стоимость: <b>${rub(s.full)}</b><br><span class="mut">Первый платёж: ${rub(s.first)}</span></span><button class="btn" onclick="openOrder(${s.id})">Заказать</button></div></div>`).join('')).join('')+
+ `<p class="mut">Пакет включает консультацию и фотосъёмку. Желаемая дата — не бронь: её подтверждает фотограф.</p>`;
+}
+function modal(h,id='modal'){const m=$('#'+id);m.innerHTML=`<div>${h}<button class="btn s" onclick="closeM('${id}')">Закрыть</button></div>`;m.style.display='flex'}
+const closeM=(id='modal')=>{const m=$('#'+id);m.style.display='none';if(id=='modal2')m.innerHTML=''};
+const isPdf=f=>/pdf/i.test(f.m||'')||/\.pdf$/i.test(f.n||'');
+function docBody(d){
+ if(!d.f)return `<p>${esc(d.t)}</p>`;
+ const b=IMG[d.f.k];if(!b)return `<p>Файл «${esc(d.f.n)}» недоступен в этом браузере: в макете файлы хранятся только там, где их загрузили.</p>`;
+ const u=URL.createObjectURL(isPdf(d.f)&&!b.type?new Blob([b],{type:'application/pdf'}):b);
+ return (isPdf(d.f)?`<iframe src="${u}" title="${esc(d.f.n)}" style="width:100%;height:60vh;border:1px solid var(--bd);margin-bottom:10px"></iframe>`:`<p>Документ «${esc(d.f.n)}» открывается в программе для чтения документов.</p>`)+`<p><a href="${u}" target="_blank" rel="noopener" download="${esc(d.f.n)}" style="color:var(--ac)">Открыть или скачать файл</a></p>`}
+function showDoc(k){const d=D.docs[k].at(-1);modal(`<h2>${DN[k]} (ред. ${d.v})</h2>`+docBody(d),'modal2')}
+async function docUp(k,inp){const f=inp.files[0];if(!f)return;
+ if(!/\.(pdf|docx?|odt|rtf|txt)$/i.test(f.name)){toast('Нужен файл PDF, DOC, DOCX, ODT, RTF или TXT');inp.value='';return}
+ if(f.size>10*1024*1024){toast('Файл больше 10 МБ');inp.value='';return}
+ const key='d'+Date.now();IMG[key]=f;await idbPut(key,f);
+ D.docs[k].push({v:D.docs[k].length+1,d:now(),f:{k:key,n:f.name,m:f.type||'',s:f.size}});save();render();toast('Загружена новая редакция')}
+function docLink(k){const d=D.docs[k].at(-1);return `<a href="#" style="color:var(--ac)" onclick="event.preventDefault();showDoc('${k}')">${DN[k]}</a>`}
+function openOrder(id){
+ const s=D.svc.find(x=>x.id==id),ad=D.add.filter(a=>a.on&&a.cat==s.cat);
+ modal(`<h2>${esc(s.name)}</h2><div class="mut">Полная стоимость ${rub(s.full)} · первый платёж ${rub(s.first)}</div>
+ <label>Имя *<input id="f_n"></label><label>Контакт (телефон / Telegram) *<input id="f_c"></label>
+ <label>Желаемая дата * <span class="mut">(не является подтверждённой бронью)</span><input id="f_d" type="date"></label>
+ <label>Желаемое время / интервал<input id="f_t" placeholder="например, утро"></label><label>Город *<input id="f_g"></label>
+ ${ad.length?'<b>Дополнительные услуги</b>'+ad.map(a=>`<div class="ck"><input type="checkbox" class="ad" value="${a.id}" onchange="calc(${id})"><label>${esc(a.name)} — ${a.price==null?Math.round(s.full*a.pct/100).toLocaleString('ru-RU')+' ₽':rub(a.price)}</label></div>`).join(''):''}
+ <label>Комментарий<textarea id="f_m" rows="2"></textarea></label><p>Итого: <b id="tot">${rub(s.full)}</b></p>
+ <div class="ck"><input type="checkbox" id="c1"><label>Я ознакомился с ${docLink('contract')} и подтверждаю заказ</label></div>
+ <div class="ck"><input type="checkbox" id="c2"><label>Я прочитал ${docLink('privacy')}</label></div>
+ <div class="ck"><input type="checkbox" id="c3"><label>Даю ${docLink('consent')} (отдельное согласие)</label></div>
+ <button class="btn" onclick="submitOrder(${id})">Отправить заявку</button>`);
+}
+function addons(id){return [...document.querySelectorAll('.ad:checked')].map(c=>D.add.find(a=>a.id==c.value)).map(a=>({name:a.name,price:a.price==null?Math.round(D.svc.find(x=>x.id==id).full*a.pct/100):a.price}))}
+function calc(id){$('#tot').textContent=rub(D.svc.find(x=>x.id==id).full+addons(id).reduce((s,a)=>s+a.price,0))}
+function submitOrder(id){
+ const v=i=>$('#'+i).value.trim(),s=D.svc.find(x=>x.id==id);
+ if(!v('f_n')||!v('f_c')||!v('f_d')||!v('f_g'))return toast('Заполните обязательные поля');
+ if(!['c1','c2','c3'].every(i=>$('#'+i).checked))return toast('Подтвердите все три пункта (галочки не ставятся заранее)');
+ const ad=addons(id),o={id:D.seq++,name:v('f_n'),contact:v('f_c'),date:v('f_d'),time:v('f_t'),city:v('f_g'),com:v('f_m'),svc:s.name,cat:s.cat,ad,
+ total:s.full+ad.reduce((a,b)=>a+b.price,0),first:s.first,paid:0,status:'Ожидает оплаты',pay:'Ожидает оплаты',note:'',log:[],
+ acc:['contract','privacy','consent'].map(k=>({doc:DN[k],ver:D.docs[k].at(-1).v,at:now(),how:'чекбокс в приложении'}))};
+ log(o,'Заявка создана; подтверждены документы (версии зафиксированы)');D.ord.unshift(o);save();
+ modal(`<h2>Заявка №${o.id} принята</h2><p>Желаемая дата ${esc(o.date)} <span class="tag">не подтверждена</span> — её согласует фотограф.</p>${payBlock(o)}`);render();
+}
+function payBlock(o){return o.first==null?'<p class="mut">Размер первого платежа определит фотограф — мы сообщим.</p>':`<div class="warn"><b>ТЕСТОВЫЙ платёж.</b> Реальные деньги не списываются.</div><button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} (тест)</button>`}
+function pay(id){const o=ord(id);o.paid=o.first;o.pay='Успешен (ТЕСТ)';o.status='Оплачен, ожидает консультации';log(o,'Тестовый платёж '+rub(o.first)+' — не реальные деньги');save();closeM();toast('Тестовый платёж выполнен');render()}
+function my(){return `<h1>Мои заказы</h1>`+(D.ord.length?D.ord.map(o=>`<div class="card"><div class="row"><b>№${o.id} · ${esc(o.svc)}</b><span class="tag">${o.status}</span></div>
+ <div class="mut">Желаемая дата: ${esc(o.date)} ${o.cdate?'':'<span class="tag">не подтверждена</span>'}${o.cdate?'· подтверждена: '+esc(o.cdate):''}<br>Итого: ${rub(o.total)} · оплата: ${o.pay}${o.paid?' (учтено '+rub(o.paid)+')':''}${o.alt?'<br>Фотограф предложил дату: '+esc(o.alt):''}</div>
+ ${o.status=='Ожидает оплаты'&&o.first!=null?payBlock(o):''}</div>`).join(''):'<p class="mut">Заказов пока нет.</p>')}
+function set(o,s,t){o.status=s;log(o,t||s);save();render()}
+function act(id,a){
+ const o=ord(id),v=($('#in'+id)||{}).value||'';
+ const m={sch:()=>v?(o.cons=v,set(o,'Консультация назначена','Консультация назначена на '+v)):toast('Укажите дату консультации'),
+ done:()=>v?(o.sum=v,log(o,'Консультация фактически проведена. Итог: '+v),set(o,'Ожидает решения фотографа')):toast('Укажите формат и краткий результат'),
+ cont:()=>set(o,'Ожидает подтверждения даты','Фотограф продолжает сотрудничество'),
+ alt:()=>v?(o.alt=v,log(o,'Предложена альтернативная дата '+v),save(),render()):toast('Укажите дату'),
+ stop:()=>{D.ref.unshift({id:Date.now(),oid:o.id,by:'фотограф',reason:v||'—',st:RS[0],amt:'',note:''});o.pay='Возврат на рассмотрении';set(o,'Ожидает расчёта взаиморасчётов','Фотограф прекратил сотрудничество; создан запрос на расчёт')},
+ rq:()=>{D.ref.unshift({id:Date.now(),oid:o.id,by:'клиент',reason:v||'—',st:RS[0],amt:'',note:''});o.pay='Возврат на рассмотрении';set(o,'Запрошено прекращение договора','Запрос на прекращение/возврат от клиента')},
+ conf:()=>{o.cdate=v||o.date;set(o,'Дата подтверждена','Дата подтверждена вручную: '+o.cdate)},
+ work:()=>set(o,'В работе'),fin:()=>{if(o.paid<o.total)o.pay='Не полностью оплачен (остаток вне MVP)';set(o,'Завершён')},
+ first:()=>+v>0?(o.first=+v,log(o,'Задан первый платёж '+v),save(),render()):toast('Введите сумму'),
+ note:()=>(o.note=v,log(o,'Заметка обновлена'),save(),render())};m[a]()
+}
+addEventListener('scroll',()=>$('#up').classList.toggle('on',scrollY>500),{passive:true});
+function toTop(){try{$('#top').scrollIntoView({behavior:'smooth',block:'start'})}catch(e){}setTimeout(()=>{if(scrollY>0)scrollTo(0,0);const d=document.documentElement;if(d&&d.scrollTop>0)d.scrollTop=0;if(document.body.scrollTop>0)document.body.scrollTop=0},800)}
+function setAt(k){const c=$('#app .chips'),x=c?c.scrollLeft:0;st.at=k;render();const n=$('#app .chips');if(n){n.scrollLeft=x;const o=n.querySelector('.on');if(o&&o.scrollIntoView)o.scrollIntoView({inline:'nearest',block:'nearest'})}}
+function adm(){
+ const tabs=[['ord','Заказы'],['cat','Каталог'],['ref','Возвраты'],['doc','Документы'],['pho','Фото']];
+ return `<h1>Админка</h1>`+`<div class="chips">`+tabs.map(t=>`<button class="chip ${st.at==t[0]?'on':''}" aria-pressed="${st.at==t[0]}" onclick="setAt('${t[0]}')">${t[1]}</button>`).join('')+`</div>`+admBody();
+}
+function admBody(){
+ if(st.at=='pho')return phoHTML();
+ if(st.at=='ord')return D.ord.length?D.ord.map(o=>{
+  const B=(a,t,c='')=>`<button class="btn ${c}" onclick="act(${o.id},'${a}')">${t}</button>`,S=o.status;let b='';
+  if(o.first==null&&S=='Ожидает оплаты')b+=B('first','Задать первый платёж');
+  if(S=='Оплачен, ожидает консультации')b+=B('sch','Назначить консультацию');
+  if(S=='Консультация назначена')b+=B('done','Консультация проведена');
+  if(S=='Ожидает решения фотографа')b+=B('cont','Продолжить')+B('alt','Предложить др. дату','s')+B('stop','Прекратить','r');
+  if(S=='Ожидает подтверждения даты')b+=B('conf','Подтвердить дату');
+  if(S=='Дата подтверждена')b+=B('work','В работу');if(S=='В работе')b+=B('fin','Завершить');
+  if(!['Завершён','Отменён','Запрошено прекращение договора','Ожидает расчёта взаиморасчётов'].includes(S))b+=B('rq','Запрос возврата от клиента','s');
+  return `<div class="card"><div class="row"><b>№${o.id} · ${esc(o.svc)}</b><span class="tag">${S}</span></div>
+  <div class="mut">${esc(o.name)} · ${esc(o.contact)} · ${esc(o.city)}<br>Желаемая дата: ${esc(o.date)} ${esc(o.time)} · итого ${rub(o.total)} · платёж: ${o.pay} ${o.pay.includes('ТЕСТ')?'<span class="tag t">тест</span>':''}
+  ${o.ad.length?'<br>Доп.: '+o.ad.map(a=>esc(a.name)).join(', '):''}${o.com?'<br>Комм.: '+esc(o.com):''}${o.cons?'<br>Консультация: '+esc(o.cons):''}${o.sum?'<br>Итог консультации: '+esc(o.sum):''}${o.note?'<br>Заметка (скрыта от клиента): '+esc(o.note):''}</div>
+  <input id="in${o.id}" placeholder="Поле для действия: дата / итог / сумма / причина / заметка">${b}${B('note','Сохранить как заметку','s')}
+  <div class="log">Документы: ${o.acc.map(a=>esc(a.doc)+' р.'+a.ver).join('; ')}<br>${o.log.map(esc).join('<br>')}</div></div>`}).join(''):'<p class="mut">Заказов пока нет.</p>';
+ if(st.at=='cat')return `<div class="warn">Изменения цен не затрагивают уже созданные заказы (в них сохранён снимок цены).</div>`+`<button class="btn" onclick="addSvc()">+ Новый тариф</button>`+D.svc.map(s=>`<div class="card"><label>Название<input value="${esc(s.name)}" onchange="svcSet(${s.id},'name',this.value)"></label><label>Категория<select onchange="svcSet(${s.id},'cat',this.value)">${Object.entries(CATS).map(([k,n])=>`<option value="${k}" ${k==s.cat?'selected':''}>${n}</option>`).join('')}</select></label><label>Описание<textarea rows="2" onchange="svcSet(${s.id},'desc',this.value)">${esc(s.desc)}</textarea></label><label>Срок готовности<input value="${esc(s.del)}" onchange="svcSet(${s.id},'del',this.value)"></label>
+  <div class="row"><label>Полная цена<input type="number" value="${s.full}" onchange="svcSet(${s.id},'full',+this.value)"></label><label>Первый платёж<input type="number" value="${s.first??''}" placeholder="не задан" onchange="svcSet(${s.id},'first',this.value?+this.value:null)"></label></div>
+  <label class="ck"><input type="checkbox" ${s.on?'checked':''} onchange="svcSet(${s.id},'on',this.checked)">Показывать клиентам</label><button class="btn s" onclick="askDel(${s.id})">Удалить тариф</button></div>`).join('')+
+  '<h2>Дополнительные услуги</h2>'+D.add.map(a=>`<div class="card row"><span>${esc(a.name)} <span class="mut">(${a.cat=='wed'?'свадьбы':'индивидуальные'})</span></span>${a.price==null?'<span class="mut">+'+a.pct+'%</span>':`<input type="number" style="width:110px" value="${a.price}" onchange="D.add[${a.id-1}].price=+this.value;save()">`}</div>`).join('');
+ if(st.at=='ref')return `<div class="warn">Сумма расчёта не вычисляется автоматически: решение принимает администратор с учётом договора, фактически оказанных услуг, подтверждённых расходов и закона. Отметка «консультация проведена» сама по себе не основание для удержания.</div>`+(D.ref.length?D.ref.map((r,i)=>{const o=ord(r.oid);return `<div class="card"><b>Заказ №${r.oid}</b> · инициатор: ${r.by}<div class="mut">Оплачено: ${rub(o.paid)} (${o.pay}) · причина: ${esc(r.reason)}</div>
+  <select onchange="D.ref[${i}].st=this.value;log(ord(${r.oid}),'Возврат: '+this.value);save()">${RS.map(s=>`<option ${s==r.st?'selected':''}>${s}</option>`).join('')}</select>
+  <input type="number" placeholder="Утверждённая сумма, ₽" value="${r.amt}" onchange="D.ref[${i}].amt=this.value;save()"><input placeholder="Основание решения" value="${esc(r.note)}" onchange="D.ref[${i}].note=this.value;save()"></div>`}).join(''):'<p class="mut">Запросов нет.</p>');
+ return Object.keys(DN).map(k=>{const d=D.docs[k].at(-1);return `<div class="card"><b>${DN[k]}</b><div class="mut">Текущая редакция: ${d.v} · ${d.f?esc(d.f.n)+' ('+Math.max(1,Math.round(d.f.s/1024))+' КБ)':'временный текст-заглушка'} · ${esc(d.d)} · всего версий: ${D.docs[k].length}. Принятые заказами версии остаются неизменными.</div><div class="row" style="margin:10px 0"><button class="btn s" onclick="showDoc('${k}')">Посмотреть</button></div><label>Загрузить новую редакцию (PDF, DOC, DOCX, до 10 МБ)<input type="file" accept=".pdf,.doc,.docx,.odt,.rtf,.txt,application/pdf" onchange="docUp('${k}',this)"></label></div>`}).join('');
+}
+function svcSet(id,k,v){const s=D.svc.find(x=>x.id==id);if(s){s[k]=v;save()}}
+function addSvc(){D.svc.unshift({id:Math.max(0,...D.svc.map(s=>s.id))+1,cat:'ind',name:'Новый тариф',desc:'',del:'—',full:0,first:null,on:false});save();render();toast('Тариф создан и пока скрыт от клиентов')}
+function askDel(id){const s=D.svc.find(x=>x.id==id);modal(`<h2>Удалить тариф?</h2><p>«${esc(s.name)}» исчезнет из каталога. Уже созданные заказы не изменятся.</p><button class="btn r" onclick="delSvc(${id})">Удалить</button>`)}
+function delSvc(id){D.svc=D.svc.filter(s=>s.id!=id);save();closeM();render();toast('Тариф удалён')}
+render();
+idbOpen().then(idbAll).then(()=>{if(PH.s.length||PH.a.length)render()});
+(function(){const T=window.Telegram&&Telegram.WebApp;if(!T)return;
+ try{T.ready();T.expand();T.setHeaderColor('#ffffff');T.setBackgroundColor('#ffffff');if(T.disableVerticalSwipes)T.disableVerticalSwipes()}catch(e){}
+ const top=()=>$('#vw').style.display=='block'?'vw':$('#modal2').style.display=='flex'?'m2':$('#modal').style.display=='flex'?'m':null;
+ const sync=()=>{try{top()?T.BackButton.show():T.BackButton.hide()}catch(e){}};
+ try{T.BackButton.onClick(()=>{const t=top();if(t=='vw')vwClose();else if(t=='m2')closeM('modal2');else if(t=='m')closeM();sync()})}catch(e){}
+ try{new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:['style']})}catch(e){}
+})();
+</script></body></html>
