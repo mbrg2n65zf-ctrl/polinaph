@@ -26,10 +26,34 @@ async function handler(req) {
     name: 'Токен бота Telegram («Мои заказы» по аккаунту)', ok: !!bot,
     hint: bot ? null : 'Не задан: «Мои заказы» будут видны только на том устройстве, где оформлен заказ. Токен даёт @BotFather; добавить в Vercel → Settings → Environment Variables, затем Redeploy',
   });
-  checks.push({
-    name: 'Уведомления в Telegram (необязательно)', ok: true, optional: true,
-    hint: process.env.TELEGRAM_CHAT_ID ? 'включены' : 'выключены: добавьте TELEGRAM_CHAT_ID (ваш chat id), чтобы получать новые заявки в личку от бота',
-  });
+  const chat = process.env.TELEGRAM_CHAT_ID || '';
+  if (bot && chat) {
+    // Живая проверка: реально отправляем тестовое сообщение. Фотограф получает его
+    // в чате с ботом, а в отчёте появляется точная ошибка Telegram, если пара
+    // «токен + chat id» не работает (неверный токен, чужой chat id, не нажат Start).
+    let tgErr = '';
+    try {
+      const r = await fetch(`https://api.telegram.org/bot${bot}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chat, text: '✅ Проверка связи: уведомления о заявках работают' }),
+        signal: AbortSignal.timeout(5000),
+      });
+      const j = await r.json().catch(() => null);
+      if (!(r.ok && j && j.ok === true)) tgErr = String((j && j.description) || 'HTTP ' + r.status).slice(0, 140);
+    } catch (e) { tgErr = String((e && e.message) || e).slice(0, 140); }
+    checks.push({
+      name: 'Уведомления в Telegram (необязательно)', ok: !tgErr, optional: true,
+      hint: tgErr
+        ? 'не работают: ' + tgErr + (/chat not found/i.test(tgErr) ? ' — проверьте TELEGRAM_CHAT_ID и что вы нажали Start у бота' : (/401|unauthorized/i.test(tgErr) ? ' — похоже, TELEGRAM_BOT_TOKEN неверный' : ''))
+        : 'включены — тестовое сообщение отправлено, посмотрите чат с ботом',
+    });
+  } else {
+    checks.push({
+      name: 'Уведомления в Telegram (необязательно)', ok: true, optional: true,
+      hint: 'выключены: задайте в Vercel TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID, чтобы получать новые заявки в личку от бота, затем Redeploy',
+    });
+  }
   const ok = checks.every((c) => c.ok);
   if (!checkToken(req)) return json({ ok });
   return json({ ok, checks });
