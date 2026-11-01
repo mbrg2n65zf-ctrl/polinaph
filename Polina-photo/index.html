@@ -104,8 +104,13 @@ const OS=['Ожидает оплаты','Оплачен, ожидает конс
 const RS=['новый запрос','на рассмотрении','одобрен','частичный возврат','отклонён (с основаниями)','возврат выполнен'];
 let D=(()=>{try{return JSON.parse(localStorage.getItem('pk2'))}catch(e){return null}})()||{svc:S0,add:A0,ord:[],ref:[],docs:Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]])),seq:1};
 (()=>{if(!D||typeof D!='object')D={};if(!Array.isArray(D.svc))D.svc=S0.map(x=>({...x}));if(!Array.isArray(D.add))D.add=A0.map(x=>({...x}));if(!Array.isArray(D.ord))D.ord=[];if(!Array.isArray(D.ref))D.ref=[];D.seq=+D.seq||1;const dd={};for(const k of Object.keys(DN))dd[k]=Array.isArray(D.docs&&D.docs[k])?D.docs[k]:[{v:1,d:now(),t:STUB}];D.docs=dd})();
-const ADM_OK=/admin/.test(location.hash+location.search)||(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initDataUnsafe&&Telegram.WebApp.initDataUnsafe.start_param)=='admin';
-const ADMIN_PAGE=/^\/admin\/?$/.test(location.pathname),TGDATA=()=>{try{return Telegram.WebApp.initData||''}catch(e){return ''}};
+// Вход в админку (экран пароля фотографа): путь /admin, ссылка Telegram с ?startapp=admin
+// (Telegram передаёт параметр и как start_param, и как tgWebAppStartParam в URL мини-приложения),
+// либо ?admin / #admin в адресе сайта. В демо-режиме (file:) #admin лишь показывает
+// демо-ссылку в подвале — локальный просмотр без сервера не должен требовать пароль.
+const TGSP=(()=>{try{return (window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initDataUnsafe&&Telegram.WebApp.initDataUnsafe.start_param)||''}catch(e){return ''}})();
+const ADM_OK=/admin/.test(location.hash+location.search)||TGSP=='admin';
+const ADMIN_PAGE=/^\/admin\/?$/.test(location.pathname)||TGSP=='admin'||/[?&]tgWebAppStartParam=admin(&|$)/.test(location.search)||(location.protocol!='file:'&&/admin/.test(location.hash+location.search)),TGDATA=()=>{try{return Telegram.WebApp.initData||''}catch(e){return ''}};
 let BOOT=location.protocol=='file:'?'':'load',BOOTERR='',SUBM=false;
 let st={tab:ADMIN_PAGE?'adm':'port',cat:'feat',adm:false,at:'ord'};
 let SRV=false,PERR='',TOKEN=(()=>{try{const t=localStorage.getItem('pk_tok')||'';return +t.split('.')[0]>Date.now()?t:''}catch(e){return ''}})();
