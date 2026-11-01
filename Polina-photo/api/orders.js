@@ -1,7 +1,7 @@
 // GET /api/orders — полный список заявок для админки (только с токеном фотографа).
 import { json, errJson, wrap, checkToken, readOrders } from './_lib.js';
 
-export default wrap(async req => {
+const handle = wrap(async req => {
   if (req.method !== 'GET') return errJson(405, 'Метод не поддерживается');
   if (!checkToken(req)) return errJson(401, 'Требуется вход фотографа');
   const orders = await readOrders();
@@ -9,3 +9,5 @@ export default wrap(async req => {
   // ключ k (доступ к заявке у клиента) наружу админке не нужен — вырезаем
   return json({ orders: orders.map(o => ({ ...o, k: undefined })) });
 });
+
+export function GET(request) { return handle(request); }

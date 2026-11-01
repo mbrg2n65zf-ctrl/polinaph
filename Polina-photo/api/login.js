@@ -3,7 +3,7 @@
 // и присылает в заголовке Authorization: Bearer.
 import { json, errJson, wrap, checkPassword, checkToken, makeToken, rateLimit, clientIp } from './_lib.js';
 
-export default wrap(async req => {
+const handle = wrap(async req => {
   if (req.method !== 'POST') return errJson(405, 'Метод не поддерживается');
   if (!process.env.ADMIN_PASSWORD) {
     return errJson(500, 'ADMIN_PASSWORD не задан: Vercel → Settings → Environment Variables → добавить переменную, затем Redeploy');
@@ -27,3 +27,5 @@ export default wrap(async req => {
   if (!checkPassword(pw)) return errJson(401, 'Неверный пароль');
   return json({ ok: true, token: makeToken() });
 });
+
+export function POST(request) { return handle(request); }

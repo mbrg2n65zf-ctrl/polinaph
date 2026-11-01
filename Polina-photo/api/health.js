@@ -23,4 +23,6 @@ async function handler() {
   checks.push({ name: 'Уведомления в Telegram (необязательно)', ok: true, optional: true, hint: tg ? 'включены' : 'выключены' });
   return json({ ok: checks.every((c) => c.ok), checks });
 }
-export default wrap(handler);
+const handle = wrap(handler);
+
+export function GET(request) { return handle(request); }

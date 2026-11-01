@@ -6,7 +6,7 @@ import { json, errJson, wrap, checkToken, blobPut, validPath, ctypeOf, isPhotoPa
 const MAX_UPLOAD = 4 * 1024 * 1024; // байт
 const DOC_EXT = ['pdf', 'doc', 'docx', 'odt', 'rtf', 'txt'];
 
-export default wrap(async req => {
+const handle = wrap(async req => {
   if (req.method !== 'POST') return errJson(405, 'Метод не поддерживается');
   if (!checkToken(req)) return errJson(401, 'Требуется вход фотографа');
 
@@ -34,3 +34,5 @@ export default wrap(async req => {
   await blobPut(p, buf, ctypeOf(p));
   return json({ ok: true });
 });
+
+export function POST(request) { return handle(request); }

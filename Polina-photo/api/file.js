@@ -3,7 +3,7 @@
 // Путь жёстко валидируется: только photos/… и docs/… с разрешёнными расширениями.
 import { errJson, wrap, blobGet, validPath, ctypeOf, isPhotoPath } from './_lib.js';
 
-export default wrap(async req => {
+const handle = wrap(async req => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return errJson(405, 'Метод не поддерживается');
 
   const p = new URL(req.url).searchParams.get('p') || '';
@@ -29,3 +29,6 @@ export default wrap(async req => {
     throw e;
   }
 });
+
+export function GET(request) { return handle(request); }
+export function HEAD(request) { return handle(request); }

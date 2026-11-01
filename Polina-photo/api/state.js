@@ -3,7 +3,7 @@
 // POST /api/state — сохранение каталога/фото/документов/возвратов (только фотограф).
 import { json, errJson, wrap, checkToken, readState, writeJSON, STATE_PATH, sanitizePub, sanitizeRef } from './_lib.js';
 
-export default wrap(async req => {
+const handle = wrap(async req => {
   if (req.method === 'GET') {
     const authed = checkToken(req);
     const st = await readState();
@@ -27,3 +27,6 @@ export default wrap(async req => {
 
   return errJson(405, 'Метод не поддерживается');
 });
+
+export function GET(request) { return handle(request); }
+export function POST(request) { return handle(request); }

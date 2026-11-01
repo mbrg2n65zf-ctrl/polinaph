@@ -16,6 +16,11 @@ export const errJson = (status, error) => json({ error }, status);
 
 // wrap: любая необработанная ошибка превращается в JSON 500, а не в HTML-страницу,
 // которую фронтенд не смог бы разобрать (api() ожидает JSON).
+//
+// ВАЖНО: каждый роут экспортирует именованные HTTP-методы (export function GET/POST/…),
+// а НЕ default-функцию. Vercel запускает default как устаревший Node-обработчик
+// (req, res) => void: там req.headers — обычный объект без .get(), а возврат Response
+// игнорируется. Именованный экспорт метода гарантирует Web-стиль (Request → Response).
 export const wrap = handler => async req => {
   try {
     return await handler(req);

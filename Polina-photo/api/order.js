@@ -10,7 +10,7 @@ import { randomBytes } from 'node:crypto';
 
 const K_RE = /^[a-f0-9]{32}$/;
 
-export default wrap(async req => {
+const handle = wrap(async req => {
   const url = new URL(req.url);
 
   // ——— чтение заявки клиентом ————————————————————————————————————————————————
@@ -135,3 +135,6 @@ export default wrap(async req => {
 
   return errJson(400, 'Неизвестное действие');
 });
+
+export function GET(request) { return handle(request); }
+export function POST(request) { return handle(request); }
