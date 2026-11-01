@@ -1,18 +1,36 @@
-import { put } from '@vercel/blob';
-import { json, isAdmin } from './_lib.js';
+// POST /api/upload?p=<путь> — загрузка фото (photos/pN.jpg) и редакций документов
+// (docs/dN.<ext>). Только с токеном фотографа. Лимит Vercel — 4.5 МБ на тело
+// запроса, поэтому здесь жёсткий лимит 4 МБ (фронтенд сжимает фото до 1600 px).
+import { json, errJson, wrap, checkToken, blobPut, validPath, ctypeOf, isPhotoPath } from './_lib.js';
 
-const OK = /^(photos\/p\d+\.jpg|docs\/d\d+\.(pdf|docx?|odt|rtf|txt))$/i;
-const MAX = 4.4 * 1024 * 1024; // лимит тела запроса на Vercel ~4,5 МБ
+const MAX_UPLOAD = 4 * 1024 * 1024; // байт
+const DOC_EXT = ['pdf', 'doc', 'docx', 'odt', 'rtf', 'txt'];
 
-export default async function handler(req) {
-  if (req.method !== 'POST') return json({ error: 'Метод не поддерживается' }, 405);
-  if (!isAdmin(req)) return json({ error: 'Нужен вход фотографа' }, 401);
+export default wrap(async req => {
+  if (req.method !== 'POST') return errJson(405, 'Метод не поддерживается');
+  if (!checkToken(req)) return errJson(401, 'Требуется вход фотографа');
+
   const p = new URL(req.url).searchParams.get('p') || '';
-  if (!OK.test(p)) return json({ error: 'Недопустимое имя файла' }, 400);
-  const buf = await req.arrayBuffer();
-  if (!buf.byteLength) return json({ error: 'Пустой файл' }, 400);
-  if (buf.byteLength > MAX) return json({ error: 'Файл больше 4 МБ' }, 413);
-  const ct = p.startsWith('photos/') ? 'image/jpeg' : req.headers.get('content-type') || 'application/octet-stream';
-  await put(p, buf, { access: 'private', addRandomSuffix: false, allowOverwrite: true, contentType: ct, cacheControlMaxAge: 31536000 });
-  return json({ ok: true, p });
-}
+  if (!validPath(p)) return errJson(400, 'Недопустимый путь файла');
+
+  const len = Number(req.headers.get('content-length') || 0);
+  if (len > MAX_UPLOAD) return errJson(413, 'Файл больше 4 МБ');
+  const buf = Buffer.from(await req.arrayBuffer());
+  if (!buf.length) return errJson(400, 'Пустой файл');
+  if (buf.length > MAX_UPLOAD) return errJson(413, 'Файл больше 4 МБ');
+
+  if (isPhotoPath(p)) {
+    if (ctypeOf(p) !== 'image/jpeg') return errJson(400, 'Фото должно быть JPEG');
+    // проверяем магические байты JPEG, а не только расширение
+    if (buf[0] !== 0xFF || buf[1] !== 0xD8) return errJson(400, 'Файл не похож на JPEG');
+  } else {
+    const ext = p.split('.').pop().toLowerCase();
+    if (!DOC_EXT.includes(ext)) return errJson(400, 'Недопустимый тип документа');
+    if (ext === 'pdf' && buf.subarray(0, 5).toString('latin1') !== '%PDF-') {
+      return errJson(400, 'Файл не похож на PDF');
+    }
+  }
+
+  await blobPut(p, buf, ctypeOf(p));
+  return json({ ok: true });
+});

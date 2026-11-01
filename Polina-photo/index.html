@@ -60,6 +60,9 @@ input,select,textarea{border-radius:0;background:#fff}
 .grid .tile{aspect-ratio:var(--ar,1)!important;overflow:hidden;width:100%}
 .grid .tile img{width:100%;height:100%;object-fit:cover;display:block}
 .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}.grid .tile{font-size:10px}
+h1{font-size:clamp(27px,10.5vw,40px);overflow-wrap:break-word}
+a.btn{text-decoration:none}
+.err{color:#b3261e;font-size:14px;min-height:20px;margin:2px 0}
 #up{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));right:max(16px,calc(50vw - 264px));width:48px;height:48px;border-radius:50%;border:0;background:rgba(22,22,22,.5);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:grid;place-items:center;cursor:pointer;z-index:25;opacity:0;pointer-events:none;transition:opacity .2s}#up.on{opacity:1;pointer-events:auto}
 h1,h2{font-family:Manrope,Inter,system-ui,sans-serif;letter-spacing:-.025em}
 h1{font-size:40px;font-weight:700;line-height:1.05;margin:0 0 14px}
@@ -69,13 +72,14 @@ h2{font-size:22px;font-weight:600;margin:30px 0 8px}
 .nm{font:400 60px/1 "Marck Script","Segoe Script",cursive;letter-spacing:0;margin:0 0 16px;color:var(--fg)}
 .btn{border-radius:999px;padding:10px 20px;font-size:14px;font-weight:500;white-space:nowrap;letter-spacing:0}
 </style><meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head><body>
-<div id="top"></div><nav id="nav"></nav><main id="app"></main><div id="modal"></div><div id="modal2"></div><div id="toast"></div>
+<noscript><p style="padding:20px">Для работы сайта нужен JavaScript.</p></noscript><div id="top"></div><nav id="nav"></nav><main id="app"></main><div id="modal"></div><div id="modal2"></div><div id="toast"></div>
 <button id="up" aria-label="Наверх" onclick="toTop()"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 18V5M5 10.5 11 4.5l6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <div id="vw" role="dialog" aria-modal="true" aria-label="Фотографии" style="display:none"><div class="vh"><button class="vbk" onclick="vwClose()" aria-label="Назад">←</button><b id="vtt">Фото</b></div><div id="vfeed"></div></div>
 <script>
-const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rub=n=>n==null?'определит фотограф':Number(n).toLocaleString('ru-RU')+' ₽',now=()=>new Date().toLocaleString('ru-RU');
 const CATS={ind:'Индивидуальные и другие съёмки',rep:'Репортаж',wed:'Свадебные съёмки'};
 const S0=[
@@ -99,25 +103,37 @@ const STUB='Текст предоставляет владелец проект�
 const OS=['Ожидает оплаты','Оплачен, ожидает консультации','Консультация назначена','Консультация проведена','Ожидает решения фотографа','Сотрудничество подтверждено','Ожидает подтверждения даты','Дата подтверждена','В работе','Завершён','Запрошено прекращение договора','Ожидает расчёта взаиморасчётов','Отменён'];
 const RS=['новый запрос','на рассмотрении','одобрен','частичный возврат','отклонён (с основаниями)','возврат выполнен'];
 let D=(()=>{try{return JSON.parse(localStorage.getItem('pk2'))}catch(e){return null}})()||{svc:S0,add:A0,ord:[],ref:[],docs:Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]])),seq:1};
+(()=>{if(!D||typeof D!='object')D={};if(!Array.isArray(D.svc))D.svc=S0.map(x=>({...x}));if(!Array.isArray(D.add))D.add=A0.map(x=>({...x}));if(!Array.isArray(D.ord))D.ord=[];if(!Array.isArray(D.ref))D.ref=[];D.seq=+D.seq||1;const dd={};for(const k of Object.keys(DN))dd[k]=Array.isArray(D.docs&&D.docs[k])?D.docs[k]:[{v:1,d:now(),t:STUB}];D.docs=dd})();
 const ADM_OK=/admin/.test(location.hash+location.search)||(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initDataUnsafe&&Telegram.WebApp.initDataUnsafe.start_param)=='admin';
-let st={tab:'port',cat:'feat',adm:false,at:'ord'};
+const ADMIN_PAGE=/^\/admin\/?$/.test(location.pathname),TGDATA=()=>{try{return Telegram.WebApp.initData||''}catch(e){return ''}};
+let BOOT=location.protocol=='file:'?'':'load',BOOTERR='',SUBM=false;
+let st={tab:ADMIN_PAGE?'adm':'port',cat:'feat',adm:false,at:'ord'};
 let SRV=false,PERR='',TOKEN=(()=>{try{const t=localStorage.getItem('pk_tok')||'';return +t.split('.')[0]>Date.now()?t:''}catch(e){return ''}})();
 const MYK='pk_my',myList=()=>{try{return JSON.parse(localStorage.getItem(MYK))||[]}catch(e){return[]}};
 const fileUrl=p=>'/api/file?p='+encodeURIComponent(p);
 async function api(path,o={}){
  const h={...(o.headers||{})};if(TOKEN&&o.auth!==false)h.Authorization='Bearer '+TOKEN;
  let body=o.body;if(body&&typeof body==='object'&&!(body instanceof Blob)){body=JSON.stringify(body);h['Content-Type']='application/json'}
- const r=await fetch(path,{method:o.method||'GET',headers:h,body});let d=null;try{d=await r.json()}catch(e){}
- if(!r.ok){if(r.status==401&&TOKEN&&path!='/api/login'){TOKEN='';try{localStorage.removeItem('pk_tok')}catch(e){}st.adm=false;render()}throw new Error((d&&d.error)||('Ошибка '+r.status))}
+ const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),o.method=='POST'?60000:20000);let r;
+ try{r=await fetch(path,{method:o.method||'GET',headers:h,body,signal:ctl.signal})}
+ catch(e){throw new Error(e&&e.name=='AbortError'?'Сервер не отвечает, попробуйте ещё раз':'Нет связи с сервером. Проверьте интернет.')}
+ finally{clearTimeout(to)}
+ let d=null;try{d=await r.json()}catch(e){}
+ if(!r.ok){if(r.status==401&&TOKEN&&path!='/api/login'){TOKEN='';try{localStorage.removeItem('pk_tok')}catch(e){}st.adm=false;render()}throw new Error((d&&d.error)||('Ошибка сервера ('+r.status+')'))}
+ if(d===null)throw new Error('Сервер вернул неожиданный ответ ('+r.status+')');
  return d}
-function applyState(p){D.svc=p.svc;D.add=p.add;D.docs=p.docs;PH=p.PH;PH.f=PH.f||[];PH.s=PH.s||[];PH.a=PH.a||[];
+function applyState(p){D.svc=Array.isArray(p.svc)?p.svc:D.svc;D.add=Array.isArray(p.add)?p.add:D.add;if(p.docs&&typeof p.docs=='object')D.docs=p.docs;PH=p.PH&&typeof p.PH=='object'?p.PH:{s:[],a:[],q:1,f:[]};PH.f=PH.f||[];PH.s=PH.s||[];PH.a=PH.a||[];
  for(const id of [...PH.s.map(x=>x.id),...PH.a.flatMap(a=>a.ph)])IMG[id]=fileUrl('photos/'+id+'.jpg')}
 async function loadMine(){D.ord=(await Promise.all(myList().map(m=>api('/api/order?id='+m.id+'&k='+m.k,{auth:false}).then(r=>r.order).catch(()=>null)))).filter(Boolean).sort((a,b)=>b.id-a.id)}
 async function initServer(){
+ if(location.protocol=='file:'){BOOT='';return}
  try{const r=await api('/api/state',{auth:false});SRV=true;D.ord=[];D.ref=[];
   if(r.pub)applyState(r.pub);
   else{D.svc=S0.map(x=>({...x}));D.add=A0.map(x=>({...x}));D.docs=Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]]));PH={s:[],a:[],q:1,f:[]}}
-  await loadMine();render()}catch(e){}}
+  BOOT='';await loadMine().catch(()=>{});
+  if(ADMIN_PAGE&&TOKEN)await enterAdm();else render()}
+ catch(e){BOOT='err';BOOTERR=e.message;render()}}
+async function retryBoot(){BOOT='load';render();await initServer()}
 let SNAP={},syncT=null;
 const snap=()=>{SNAP={};D.ord.forEach(o=>SNAP[o.id]=JSON.stringify(o))};
 function scheduleSync(){clearTimeout(syncT);syncT=setTimeout(doSync,700)}
@@ -127,23 +143,29 @@ async function doSync(){if(!SRV||!TOKEN)return;
   toast('Сохранено на сервере')}catch(e){toast('Не удалось сохранить: '+e.message)}}
 const save=()=>{if(SRV){if(TOKEN&&st.adm)scheduleSync();return}try{localStorage.setItem('pk2',JSON.stringify(D))}catch(e){}};
 function admToggle(){
- if(st.adm){st.adm=false;st.tab='port';render();if(SRV)loadMine().then(render);return}
- if(!SRV){st.adm=true;st.tab='adm';render();return}
- if(TOKEN)return enterAdm();
- modal(`<h2>Вход для фотографа</h2><label>Пароль<input id="apw" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')admLogin()"></label><br><button class="btn" onclick="admLogin()">Войти</button>`)}
-async function admLogin(){try{const r=await api('/api/login',{method:'POST',body:{password:$('#apw').value},auth:false});TOKEN=r.token;try{localStorage.setItem('pk_tok',TOKEN)}catch(e){}closeM();enterAdm()}catch(e){toast(e.message)}}
-async function enterAdm(){try{const [a,o]=await Promise.all([api('/api/state'),api('/api/orders')]);if(a.pub)applyState(a.pub);D.ref=a.ref||[];D.ord=o.orders;snap();st.adm=true;st.tab='adm';render()}catch(e){toast(e.message)}}
+ if(st.adm){if(SRV){TOKEN='';try{localStorage.removeItem('pk_tok')}catch(e){}}st.adm=false;st.tab=ADMIN_PAGE?'adm':'port';render();if(SRV)loadMine().then(render);return}
+ if(!SRV){st.adm=true;st.tab='adm';render()}}
+const loginScreen=()=>`<h1 style="margin-top:28px">Вход для фотографа</h1><p class="mut">Введите пароль, который вы задали в настройках Vercel (переменная ADMIN_PASSWORD).</p><label>Пароль<input id="apw" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')admLogin()"></label><div id="aerr" class="err" role="alert"></div><br><div class="row"><button class="btn" id="abtn" onclick="admLogin()">Войти</button><a class="btn s" href="/">На сайт</a></div><p class="mut" style="margin-top:28px"><a href="#" onclick="healthCheck();return false" style="color:var(--mut)">Проверить настройки сервера</a></p>`;
+async function healthCheck(){try{const r=await api('/api/health',{auth:false});modal(`<h2>${r.ok?'Всё настроено':'Есть проблемы'}</h2>`+r.checks.map(c=>`<p><b>${c.ok?'✓':'✗'} ${esc(c.name)}</b>${c.hint?`<br><span class="mut">${esc(c.hint)}</span>`:''}</p>`).join(''))}catch(e){toast(e.message)}}
+async function admLogin(){const i=$('#apw');if(!i||!i.value)return;const b=$('#abtn'),er=$('#aerr');b.disabled=true;er.textContent='';
+ try{const r=await api('/api/login',{method:'POST',body:{password:i.value},auth:false});TOKEN=r.token;try{localStorage.setItem('pk_tok',TOKEN)}catch(e){}await enterAdm()}
+ catch(e){const x=$('#aerr');if(x)x.textContent=e.message;const y=$('#abtn');if(y)y.disabled=false}}
+async function enterAdm(){try{const [a,o]=await Promise.all([api('/api/state'),api('/api/orders')]);if(a.pub)applyState(a.pub);D.ref=a.ref||[];D.ord=o.orders;snap();st.adm=true;st.tab='adm';render();if(!a.pub)doSync()}catch(e){const x=$('#aerr');if(x)x.textContent=e.message;else toast(e.message);const b=$('#abtn');if(b)b.disabled=false}}
 const shrinkB=f=>new Promise((res,rej)=>{const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?res(b):rej(new Error('не удалось обработать фото')),'image/jpeg',.82)};im.onerror=()=>rej(new Error('формат не поддерживается (HEIC?), сохраните как JPEG'));im.src=u});
 async function storeImg(id,f){if(SRV){const b=await shrinkB(f);await api('/api/upload?p='+encodeURIComponent('photos/'+id+'.jpg'),{method:'POST',body:b,headers:{'Content-Type':'image/jpeg'}});return fileUrl('photos/'+id+'.jpg')}const u=await shrink(f);await idbPut(id,u);return u}
 
 const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)};
-const log=(o,t)=>o.log.unshift(now()+' — '+t);
+const log=(o,t)=>{if(o)(o.log=o.log||[]).unshift(now()+' — '+t)};
 const ord=id=>D.ord.find(o=>o.id==id);
 function go(t){st.tab=t;render();if(t=='my'&&SRV&&!st.adm)loadMine().then(render)}
+const foot=()=>`<p class="mut" style="margin-top:30px">${(st.adm||(!SRV&&ADM_OK))?`<a href="#" onclick="admToggle();return false" style="color:var(--mut)">${st.adm?'Выйти из режима фотографа':'Режим фотографа (демо)'}</a><br>`:''}${SRV?'':'Демо-прототип: данные хранятся только в этом браузере. В рабочей версии права проверяет сервер.'}</p>`;
 function render(){
+ if(BOOT=='load'){$('#nav').innerHTML='';$('#app').innerHTML='<p class="mut" style="margin-top:38vh;text-align:center">Загрузка…</p>';return}
+ if(BOOT=='err'){$('#nav').innerHTML='';$('#app').innerHTML=`<h1 style="margin-top:18vh">Не удалось загрузить сайт</h1><p class="mut">${esc(BOOTERR)}</p><button class="btn" onclick="retryBoot()">Повторить</button>`;return}
  const T=[['port','Портфолио'],['svc','Услуги'],['my','Мои заказы']];if(st.adm)T.push(['adm','Админка']);
- $('#nav').innerHTML=T.map(t=>`<button class="${st.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('');
- $('#app').innerHTML=({port,svc,my,adm})[st.tab]()+`<p class="mut" style="margin-top:30px">${(ADM_OK||st.adm)?`<a href="#" onclick="admToggle();return false" style="color:var(--mut)">${st.adm?'Выйти из режима фотографа':(SRV?'Вход для фотографа':'Режим фотографа (демо)')}</a><br>`:''}${SRV?'':'Демо-прототип: данные хранятся только в этом браузере. В рабочей версии права проверяет сервер.'}</p>`;
+ const gate=ADMIN_PAGE&&!st.adm;
+ $('#nav').innerHTML=gate?'':T.map(t=>`<button class="${st.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('');
+ $('#app').innerHTML=({port,svc,my,adm})[st.tab]()+(gate?'':foot());
 }
 const TL=[['ind','Индивидуальные'],['love','Love Story'],['preg','Беременность'],['fam','Семейные истории'],['wed','Свадьбы'],['rep','Репортаж']];
 function port(){
@@ -158,7 +180,7 @@ function setCat(c){st.cat=c;st.alb=null;const d=document.createElement('div');d.
 let VL=[],VI=0;
 const WA=[{n:'Анна и Михаил',s:'Камерная свадьба',h:20,c:14},{n:'Елена и Артём',s:'ЗАГС и прогулка',h:8,c:10},{n:'Мария и Дмитрий',s:'Свадебный день',h:34,c:18}];
 const phBg=(h,i)=>`linear-gradient(160deg,hsl(${h},22%,${89-(i%5)*3}%),hsl(${h},18%,${78-(i%4)*3}%))`;
-let PH=(()=>{try{return JSON.parse(localStorage.getItem('pk_ph'))}catch(e){return null}})()||{s:[],a:[],q:1,f:[]};PH.f=PH.f||[];
+let PH=(()=>{try{return JSON.parse(localStorage.getItem('pk_ph'))}catch(e){return null}})()||{s:[],a:[],q:1,f:[]};PH.s=Array.isArray(PH.s)?PH.s:[];PH.a=Array.isArray(PH.a)?PH.a:[];PH.f=Array.isArray(PH.f)?PH.f:[];PH.q=+PH.q||1;
 const IMG={};let idb=null;
 const phSave=()=>{if(SRV){if(TOKEN&&st.adm)scheduleSync();return}try{localStorage.setItem('pk_ph',JSON.stringify(PH))}catch(e){toast('Не удалось сохранить список фото')}};
 const idbOpen=()=>new Promise(r=>{try{const q=indexedDB.open('pk_img',1);q.onupgradeneeded=()=>q.result.createObjectStore('i');q.onsuccess=()=>{idb=q.result;r()};q.onerror=()=>r();q.onblocked=()=>r()}catch(e){r()}});
@@ -174,13 +196,15 @@ async function phUp(inp){
  if(dest!='new'&&dest[0]=='a'&&!alb)return;
  let n=0;
  for(const f of files){try{const id='p'+PH.q++,u=await storeImg(id,f);IMG[id]=u;alb?alb.ph.push(id):PH.s.push({id,cat:dest});n++;toast('Загружено '+n+' из '+files.length)}catch(e){PERR=(e&&e.message)||''}}
- phSave();render();toast(n?'Загружено фото: '+n+(SRV?' (сохраняю…)':''):'Не удалось загрузить: '+(PERR||'файл не подошёл'))
+ if(!n&&dest=='new'&&alb&&!alb.ph.length){PH.a=PH.a.filter(x=>x!==alb);st.pd='ind'}
+ if(n){phSave();render()}
+ toast(n?'Загружено фото: '+n+(SRV?' (сохраняю…)':''):'Не удалось загрузить: '+(PERR||'файл не подошёл'))
 }
 function albSet(id,k,v){const a=PH.a.find(x=>x.id==id);if(a){a[k]=v;phSave()}}
 function phDel(aid,id){if(aid){const a=PH.a.find(x=>x.id==aid);a.ph=a.ph.filter(x=>x!=id)}else PH.s=PH.s.filter(p=>p.id!=id);delete IMG[id];idbDel(id);PH.f=PH.f.filter(x=>x!=id);phSave();render();toast('Фото удалено')}
-function phCover(aid,id){const a=PH.a.find(x=>x.id==aid);a.ph=[id,...a.ph.filter(x=>x!=id)];phSave();render()}
+function phCover(aid,id){const a=PH.a.find(x=>x.id==aid);if(!a)return;a.ph=[id,...a.ph.filter(x=>x!=id)];phSave();render()}
 function albAsk(id){const a=PH.a.find(x=>x.id==id);modal(`<h2>Удалить альбом?</h2><p>«${esc(a.name)}» и все его фото (${a.ph.length}) будут удалены.</p><button class="btn r" onclick="albDel('${id}')">Удалить</button>`)}
-function albDel(id){const a=PH.a.find(x=>x.id==id);a.ph.forEach(p=>{delete IMG[p];idbDel(p)});PH.f=PH.f.filter(x=>!a.ph.includes(x));PH.a=PH.a.filter(x=>x.id!=id);phSave();closeM();render();toast('Альбом удалён')}
+function albDel(id){const a=PH.a.find(x=>x.id==id);if(!a)return;a.ph.forEach(p=>{delete IMG[p];idbDel(p)});PH.f=PH.f.filter(x=>!a.ph.includes(x));PH.a=PH.a.filter(x=>x.id!=id);phSave();closeM();render();toast('Альбом удалён')}
 const SB='position:absolute;min-height:0;width:26px;height:26px;padding:0;border-radius:50%;font-size:13px';
 function phFeat(id){const i=PH.f.indexOf(id);i<0?PH.f.push(id):PH.f.splice(i,1);phSave();render()}
 function phMove(i,d){const f=PH.f,j=i+d;if(j<0||j>=f.length)return;[f[i],f[j]]=[f[j],f[i]];phSave();render()}
@@ -206,7 +230,7 @@ function galHTML(){
   const A=wedA();if(!A.length)return EMPTY;
   if(st.alb==null||!A[st.alb])return A.map((a,i)=>`<div class="alb" role="button" tabindex="0" onclick="openAlb(${i})" onkeydown="if(event.key=='Enter')openAlb(${i})"><div class="cv" style="background:${a.u?(a.u[0]?`url('${a.u[0]}') center/cover`:'var(--bd)'):phBg(a.h,0)}"></div><div class="row" style="margin-top:8px"><b>${esc(a.n)}</b><span class="mut">${a.c} фото</span></div><div class="mut">${esc(a.s)}</div></div>`).join('');
   const a=A[st.alb];VL=a.u?a.u.map(u=>({u})):Array.from({length:a.c},(_,i)=>({bg:phBg(a.h+i*3,i),t:'Фото '+(i+1)}));
-  return `<div style="grid-column:1/-1"><button class="btn s" onclick="openAlb(null)">← Все альбомы</button><h2 style="margin:14px 0 2px">${esc(a.n)}</h2><div class="mut">${esc(a.s)} · ${a.c} фото</div></div>`+tilesOf(VL);
+  return `<div style="grid-column:1/-1"><button class="btn s" onclick="openAlb(null)">← Все альбомы</button><h2 style="margin:14px 0 2px">${esc(a.n)}</h2><div class="mut">${a.s?esc(a.s)+' · ':''}${a.c} фото</div></div>`+tilesOf(VL);
  }
  if(hasReal()){
   if(st.cat=='feat'){VL=PH.f.map(id=>({u:IMG[id]})).filter(p=>p.u);if(!VL.length)return '<p class="mut" style="grid-column:1/-1">На главной пока ничего не выбрано.</p>'}
@@ -243,7 +267,7 @@ async function docUp(k,inp){const f=inp.files[0];if(!f)return;
  D.docs[k].push({v:D.docs[k].length+1,d:now(),f:{k:key,n:f.name,m:f.type||'',s:f.size,p:SRV?p:undefined}});save();render();toast(SRV?'Редакция загружена, сохраняю…':'Загружена новая редакция')}
 function docLink(k){const d=D.docs[k].at(-1);return `<a href="#" style="color:var(--ac)" onclick="event.preventDefault();showDoc('${k}')">${DN[k]}</a>`}
 function openOrder(id){
- const s=D.svc.find(x=>x.id==id),ad=D.add.filter(a=>a.on&&a.cat==s.cat);
+ const s=D.svc.find(x=>x.id==id);if(!s)return toast('Этот тариф больше не доступен, обновите страницу');const ad=D.add.filter(a=>a.on&&a.cat==s.cat);
  modal(`<h2>${esc(s.name)}</h2><div class="mut">Полная стоимость ${rub(s.full)} · первый платёж ${rub(s.first)}</div>
  <label>Имя *<input id="f_n"></label><label>Контакт (телефон / Telegram) *<input id="f_c"></label>
  <label>Желаемая дата * <span class="mut">(не является подтверждённой бронью)</span><input id="f_d" type="date"></label>
@@ -255,14 +279,14 @@ function openOrder(id){
  <div class="ck"><input type="checkbox" id="c3"><label>Даю ${docLink('consent')} (отдельное согласие)</label></div>
  <button class="btn" onclick="submitOrder(${id})">Отправить заявку</button>`);
 }
-function addons(id){return [...document.querySelectorAll('.ad:checked')].map(c=>D.add.find(a=>a.id==c.value)).map(a=>({name:a.name,price:a.price==null?Math.round(D.svc.find(x=>x.id==id).full*a.pct/100):a.price}))}
+function addons(id){return [...document.querySelectorAll('.ad:checked')].map(c=>D.add.find(a=>a.id==c.value)).filter(Boolean).map(a=>({name:a.name,price:a.price==null?Math.round(D.svc.find(x=>x.id==id).full*(a.pct||0)/100):a.price}))}
 function calc(id){$('#tot').textContent=rub(D.svc.find(x=>x.id==id).full+addons(id).reduce((s,a)=>s+a.price,0))}
 async function submitOrder(id){
  const v=i=>$('#'+i).value.trim(),s=D.svc.find(x=>x.id==id);
  if(!v('f_n')||!v('f_c')||!v('f_d')||!v('f_g'))return toast('Заполните обязательные поля');
  if(!['c1','c2','c3'].every(i=>$('#'+i).checked))return toast('Подтвердите все три пункта (галочки не ставятся заранее)');
- if(SRV){try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'create',order:{svcId:s.id,adIds:[...document.querySelectorAll('.ad:checked')].map(c=>+c.value),name:v('f_n'),contact:v('f_c'),date:v('f_d'),time:v('f_t'),city:v('f_g'),com:v('f_m'),accepted:true}}});const o=r.order,L=myList();L.push({id:o.id,k:o.k});try{localStorage.setItem(MYK,JSON.stringify(L))}catch(e){}D.ord.unshift(o);
-  modal(`<h2>Заявка №${o.id} принята</h2><p>Желаемая дата ${esc(o.date)} <span class="tag">не подтверждена</span> — её согласует фотограф.</p>${payBlock(o)}`);render()}catch(e){toast(e.message)}return}
+ if(SRV){if(SUBM)return;SUBM=true;try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'create',order:{svcId:s.id,adIds:[...document.querySelectorAll('.ad:checked')].map(c=>+c.value),name:v('f_n'),contact:v('f_c'),date:v('f_d'),time:v('f_t'),city:v('f_g'),com:v('f_m'),accepted:true,tg:TGDATA()}}});const o=r.order,L=myList();L.push({id:o.id,k:o.k});try{localStorage.setItem(MYK,JSON.stringify(L))}catch(e){}D.ord.unshift(o);
+  modal(`<h2>Заявка №${o.id} принята</h2><p>Желаемая дата ${esc(o.date)} <span class="tag">не подтверждена</span> — её согласует фотограф.</p>${payBlock(o)}`);render()}catch(e){toast(e.message)}finally{SUBM=false}return}
  const ad=addons(id),o={id:D.seq++,name:v('f_n'),contact:v('f_c'),date:v('f_d'),time:v('f_t'),city:v('f_g'),com:v('f_m'),svc:s.name,cat:s.cat,ad,
  total:s.full+ad.reduce((a,b)=>a+b.price,0),first:s.first,paid:0,status:'Ожидает оплаты',pay:'Ожидает оплаты',note:'',log:[],
  acc:['contract','privacy','consent'].map(k=>({doc:DN[k],ver:D.docs[k].at(-1).v,at:now(),how:'чекбокс в приложении'}))};
@@ -270,13 +294,13 @@ async function submitOrder(id){
  modal(`<h2>Заявка №${o.id} принята</h2><p>Желаемая дата ${esc(o.date)} <span class="tag">не подтверждена</span> — её согласует фотограф.</p>${payBlock(o)}`);render();
 }
 function payBlock(o){return o.first==null?'<p class="mut">Размер первого платежа определит фотограф — мы сообщим.</p>':`<div class="warn"><b>ТЕСТОВЫЙ платёж.</b> Реальные деньги не списываются.</div><button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} (тест)</button>`}
-async function pay(id){if(SRV){const o=ord(id);try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'pay',id,k:o.k}});Object.assign(o,r.order);closeM();toast('Тестовый платёж выполнен');render()}catch(e){toast(e.message)}return}const o=ord(id);o.paid=o.first;o.pay='Успешен (ТЕСТ)';o.status='Оплачен, ожидает консультации';log(o,'Тестовый платёж '+rub(o.first)+' — не реальные деньги');save();closeM();toast('Тестовый платёж выполнен');render()}
-function my(){return `<h1>Мои заказы</h1>`+(D.ord.length?D.ord.map(o=>`<div class="card"><div class="row"><b>№${o.id} · ${esc(o.svc)}</b><span class="tag">${o.status}</span></div>
- <div class="mut">Желаемая дата: ${esc(o.date)} ${o.cdate?'':'<span class="tag">не подтверждена</span>'}${o.cdate?'· подтверждена: '+esc(o.cdate):''}<br>Итого: ${rub(o.total)} · оплата: ${o.pay}${o.paid?' (учтено '+rub(o.paid)+')':''}${o.alt?'<br>Фотограф предложил дату: '+esc(o.alt):''}</div>
+async function pay(id){if(SRV){if(window.PAYING)return;window.PAYING=1;const o=ord(id);if(!o){window.PAYING=0;return toast('Заявка не найдена')}try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'pay',id,k:o.k}});Object.assign(o,r.order);closeM();toast('Тестовый платёж выполнен');render()}catch(e){toast(e.message)}finally{window.PAYING=0}return}const o=ord(id);if(!o)return;o.paid=o.first;o.pay='Успешен (ТЕСТ)';o.status='Оплачен, ожидает консультации';log(o,'Тестовый платёж '+rub(o.first)+' — не реальные деньги');save();closeM();toast('Тестовый платёж выполнен');render()}
+function my(){return `<h1>Мои заказы</h1>`+(D.ord.length?D.ord.map(o=>`<div class="card"><div class="row"><b>№${o.id} · ${esc(o.svc)}</b><span class="tag">${esc(o.status)}</span></div>
+ <div class="mut">Желаемая дата: ${esc(o.date)} ${o.cdate?'':'<span class="tag">не подтверждена</span>'}${o.cdate?'· подтверждена: '+esc(o.cdate):''}<br>Итого: ${rub(o.total)} · оплата: ${esc(o.pay)}${o.paid?' (учтено '+rub(o.paid)+')':''}${o.alt?'<br>Фотограф предложил дату: '+esc(o.alt):''}</div>
  ${o.status=='Ожидает оплаты'&&o.first!=null?payBlock(o):''}</div>`).join(''):'<p class="mut">Заказов пока нет.</p>')}
 function set(o,s,t){o.status=s;log(o,t||s);save();render()}
 function act(id,a){
- const o=ord(id),v=($('#in'+id)||{}).value||'';
+ const o=ord(id);if(!o)return;const v=($('#in'+id)||{}).value||'';
  const m={sch:()=>v?(o.cons=v,set(o,'Консультация назначена','Консультация назначена на '+v)):toast('Укажите дату консультации'),
  done:()=>v?(o.sum=v,log(o,'Консультация фактически проведена. Итог: '+v),set(o,'Ожидает решения фотографа')):toast('Укажите формат и краткий результат'),
  cont:()=>set(o,'Ожидает подтверждения даты','Фотограф продолжает сотрудничество'),
@@ -291,7 +315,7 @@ function act(id,a){
 addEventListener('scroll',()=>$('#up').classList.toggle('on',scrollY>500),{passive:true});
 function toTop(){try{$('#top').scrollIntoView({behavior:'smooth',block:'start'})}catch(e){}setTimeout(()=>{if(scrollY>0)scrollTo(0,0);const d=document.documentElement;if(d&&d.scrollTop>0)d.scrollTop=0;if(document.body.scrollTop>0)document.body.scrollTop=0},800)}
 function setAt(k){const c=$('#app .chips'),x=c?c.scrollLeft:0;st.at=k;render();const n=$('#app .chips');if(n){n.scrollLeft=x;const o=n.querySelector('.on');if(o&&o.scrollIntoView)o.scrollIntoView({inline:'nearest',block:'nearest'})}}
-function adm(){
+function adm(){if(!st.adm)return loginScreen();
  const tabs=[['ord','Заказы'],['cat','Каталог'],['ref','Возвраты'],['doc','Документы'],['pho','Фото']];
  return `<h1>Админка</h1>`+`<div class="chips">`+tabs.map(t=>`<button class="chip ${st.at==t[0]?'on':''}" aria-pressed="${st.at==t[0]}" onclick="setAt('${t[0]}')">${t[1]}</button>`).join('')+`</div>`+admBody();
 }
@@ -307,25 +331,26 @@ function admBody(){
   if(S=='Дата подтверждена')b+=B('work','В работу');if(S=='В работе')b+=B('fin','Завершить');
   if(!['Завершён','Отменён','Запрошено прекращение договора','Ожидает расчёта взаиморасчётов'].includes(S))b+=B('rq','Запрос возврата от клиента','s');
   return `<div class="card"><div class="row"><b>№${o.id} · ${esc(o.svc)}</b><span class="tag">${S}</span></div>
-  <div class="mut">${esc(o.name)} · ${esc(o.contact)} · ${esc(o.city)}<br>Желаемая дата: ${esc(o.date)} ${esc(o.time)} · итого ${rub(o.total)} · платёж: ${o.pay} ${o.pay.includes('ТЕСТ')?'<span class="tag t">тест</span>':''}
-  ${o.ad.length?'<br>Доп.: '+o.ad.map(a=>esc(a.name)).join(', '):''}${o.com?'<br>Комм.: '+esc(o.com):''}${o.cons?'<br>Консультация: '+esc(o.cons):''}${o.sum?'<br>Итог консультации: '+esc(o.sum):''}${o.note?'<br>Заметка (скрыта от клиента): '+esc(o.note):''}</div>
+  <div class="mut">${esc(o.name)} · ${esc(o.contact)} · ${esc(o.city)}<br>Желаемая дата: ${esc(o.date)} ${esc(o.time)} · итого ${rub(o.total)} · платёж: ${esc(o.pay)} ${String(o.pay||'').includes('ТЕСТ')?'<span class="tag t">тест</span>':''}
+  ${(o.ad||[]).length?'<br>Доп.: '+(o.ad||[]).map(a=>esc(a.name)).join(', '):''}${o.com?'<br>Комм.: '+esc(o.com):''}${o.cons?'<br>Консультация: '+esc(o.cons):''}${o.sum?'<br>Итог консультации: '+esc(o.sum):''}${o.note?'<br>Заметка (скрыта от клиента): '+esc(o.note):''}</div>
   <input id="in${o.id}" placeholder="Поле для действия: дата / итог / сумма / причина / заметка">${b}${B('note','Сохранить как заметку','s')}
-  <div class="log">Документы: ${o.acc.map(a=>esc(a.doc)+' р.'+a.ver).join('; ')}<br>${o.log.map(esc).join('<br>')}</div></div>`}).join(''):'<p class="mut">Заказов пока нет.</p>';
+  <div class="log">Документы: ${(o.acc||[]).map(a=>esc(a.doc)+' р.'+a.ver).join('; ')}<br>${(o.log||[]).map(esc).join('<br>')}</div></div>`}).join(''):'<p class="mut">Заказов пока нет.</p>';
  if(st.at=='cat')return `<div class="warn">Изменения цен не затрагивают уже созданные заказы (в них сохранён снимок цены).</div>`+`<button class="btn" onclick="addSvc()">+ Новый тариф</button>`+D.svc.map(s=>`<div class="card"><label>Название<input value="${esc(s.name)}" onchange="svcSet(${s.id},'name',this.value)"></label><label>Категория<select onchange="svcSet(${s.id},'cat',this.value)">${Object.entries(CATS).map(([k,n])=>`<option value="${k}" ${k==s.cat?'selected':''}>${n}</option>`).join('')}</select></label><label>Описание<textarea rows="2" onchange="svcSet(${s.id},'desc',this.value)">${esc(s.desc)}</textarea></label><label>Срок готовности<input value="${esc(s.del)}" onchange="svcSet(${s.id},'del',this.value)"></label>
   <div class="row"><label>Полная цена<input type="number" value="${s.full}" onchange="svcSet(${s.id},'full',+this.value)"></label><label>Первый платёж<input type="number" value="${s.first??''}" placeholder="не задан" onchange="svcSet(${s.id},'first',this.value?+this.value:null)"></label></div>
   <label class="ck"><input type="checkbox" ${s.on?'checked':''} onchange="svcSet(${s.id},'on',this.checked)">Показывать клиентам</label><button class="btn s" onclick="askDel(${s.id})">Удалить тариф</button></div>`).join('')+
-  '<h2>Дополнительные услуги</h2>'+D.add.map(a=>`<div class="card row"><span>${esc(a.name)} <span class="mut">(${a.cat=='wed'?'свадьбы':'индивидуальные'})</span></span>${a.price==null?'<span class="mut">+'+a.pct+'%</span>':`<input type="number" style="width:110px" value="${a.price}" onchange="D.add[${a.id-1}].price=+this.value;save()">`}</div>`).join('');
- if(st.at=='ref')return `<div class="warn">Сумма расчёта не вычисляется автоматически: решение принимает администратор с учётом договора, фактически оказанных услуг, подтверждённых расходов и закона. Отметка «консультация проведена» сама по себе не основание для удержания.</div>`+(D.ref.length?D.ref.map((r,i)=>{const o=ord(r.oid);return `<div class="card"><b>Заказ №${r.oid}</b> · инициатор: ${r.by}<div class="mut">Оплачено: ${rub(o.paid)} (${o.pay}) · причина: ${esc(r.reason)}</div>
+  '<h2>Дополнительные услуги</h2>'+D.add.map(a=>`<div class="card row"><span>${esc(a.name)} <span class="mut">(${a.cat=='wed'?'свадьбы':'индивидуальные'})</span></span>${a.price==null?'<span class="mut">+'+a.pct+'%</span>':`<input type="number" style="width:110px" value="${a.price}" onchange="addPrice(${a.id},this.value)">`}</div>`).join('');
+ if(st.at=='ref')return `<div class="warn">Сумма расчёта не вычисляется автоматически: решение принимает администратор с учётом договора, фактически оказанных услуг, подтверждённых расходов и закона. Отметка «консультация проведена» сама по себе не основание для удержания.</div>`+(D.ref.length?D.ref.map((r,i)=>{const o=ord(r.oid);if(!o)return '';return `<div class="card"><b>Заказ №${r.oid}</b> · инициатор: ${esc(r.by)}<div class="mut">Оплачено: ${rub(o.paid)} (${esc(o.pay)}) · причина: ${esc(r.reason)}</div>
   <select onchange="D.ref[${i}].st=this.value;log(ord(${r.oid}),'Возврат: '+this.value);save()">${RS.map(s=>`<option ${s==r.st?'selected':''}>${s}</option>`).join('')}</select>
-  <input type="number" placeholder="Утверждённая сумма, ₽" value="${r.amt}" onchange="D.ref[${i}].amt=this.value;save()"><input placeholder="Основание решения" value="${esc(r.note)}" onchange="D.ref[${i}].note=this.value;save()"></div>`}).join(''):'<p class="mut">Запросов нет.</p>');
+  <input type="number" placeholder="Утверждённая сумма, ₽" value="${esc(r.amt)}" onchange="D.ref[${i}].amt=this.value;save()"><input placeholder="Основание решения" value="${esc(r.note)}" onchange="D.ref[${i}].note=this.value;save()"></div>`}).join(''):'<p class="mut">Запросов нет.</p>');
  return Object.keys(DN).map(k=>{const d=D.docs[k].at(-1);return `<div class="card"><b>${DN[k]}</b><div class="mut">Текущая редакция: ${d.v} · ${d.f?esc(d.f.n)+' ('+Math.max(1,Math.round(d.f.s/1024))+' КБ)':'временный текст-заглушка'} · ${esc(d.d)} · всего версий: ${D.docs[k].length}. Принятые заказами версии остаются неизменными.</div><div class="row" style="margin:10px 0"><button class="btn s" onclick="showDoc('${k}')">Посмотреть</button></div><label>Загрузить новую редакцию (PDF, DOC, DOCX, до ${SRV?4:10} МБ)<input type="file" accept=".pdf,.doc,.docx,.odt,.rtf,.txt,application/pdf" onchange="docUp('${k}',this)"></label></div>`}).join('');
 }
-function svcSet(id,k,v){const s=D.svc.find(x=>x.id==id);if(s){s[k]=v;save()}}
+function svcSet(id,k,v){const s=D.svc.find(x=>x.id==id);if(!s)return;if(k=='full'){v=+v;if(!isFinite(v)||v<0)return toast('Введите корректную цену')}if(k=='first'&&v!==''){v=v==null?null:+v;if(v!=null&&(!isFinite(v)||v<0))return toast('Введите корректную сумму')}s[k]=v;save()}
+function addPrice(id,v){const a=D.add.find(x=>x.id==id);if(!a)return;const n=v===''||v==null?null:+v;if(n!=null&&(!isFinite(n)||n<0))return toast('Введите корректную сумму');a.price=n;if(n==null&&!a.pct)a.pct=10;save();render()}
 function addSvc(){D.svc.unshift({id:Math.max(0,...D.svc.map(s=>s.id))+1,cat:'ind',name:'Новый тариф',desc:'',del:'—',full:0,first:null,on:false});save();render();toast('Тариф создан и пока скрыт от клиентов')}
-function askDel(id){const s=D.svc.find(x=>x.id==id);modal(`<h2>Удалить тариф?</h2><p>«${esc(s.name)}» исчезнет из каталога. Уже созданные заказы не изменятся.</p><button class="btn r" onclick="delSvc(${id})">Удалить</button>`)}
+function askDel(id){const s=D.svc.find(x=>x.id==id);if(!s)return;modal(`<h2>Удалить тариф?</h2><p>«${esc(s.name)}» исчезнет из каталога. Уже созданные заказы не изменятся.</p><button class="btn r" onclick="delSvc(${id})">Удалить</button>`)}
 function delSvc(id){D.svc=D.svc.filter(s=>s.id!=id);save();closeM();render();toast('Тариф удалён')}
 render();
-initServer().then(()=>{if(!SRV)return idbOpen().then(idbAll).then(()=>{if(PH.s.length||PH.a.length)render()})});
+initServer().then(()=>{if(!SRV)return idbOpen().then(idbAll).then(()=>{if(PH.s.length||PH.a.length||PH.f.length)render()})});
 (function(){const T=window.Telegram&&Telegram.WebApp;if(!T)return;
  try{T.ready();T.expand();T.setHeaderColor('#ffffff');T.setBackgroundColor('#ffffff');if(T.disableVerticalSwipes)T.disableVerticalSwipes()}catch(e){}
  const top=()=>$('#vw').style.display=='block'?'vw':$('#modal2').style.display=='flex'?'m2':$('#modal').style.display=='flex'?'m':null;

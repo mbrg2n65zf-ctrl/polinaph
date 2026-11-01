@@ -1,8 +1,13 @@
 {
-  "name": "polina-photo",
+  "name": "photographer-tma",
+  "version": "1.0.0",
   "private": true,
+  "description": "Telegram Mini App для фотографа: каталог услуг, заявки, галерея и админ-панель. Vercel Functions + Vercel Blob.",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "@vercel/blob": "^2.3.0"
+    "@vercel/blob": "^2.8.2"
   }
 }

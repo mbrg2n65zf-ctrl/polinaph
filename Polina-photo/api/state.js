@@ -1,25 +1,29 @@
-import { json, isAdmin, readJSON, writeJSON } from './_lib.js';
+// GET  /api/state — каталог и фото для всех посетителей; раздел «Возвраты» (ref)
+//                    и полный ответ отдаются только с токеном фотографа.
+// POST /api/state — сохранение каталога/фото/документов/возвратов (только фотограф).
+import { json, errJson, wrap, checkToken, readState, writeJSON, STATE_PATH, sanitizePub, sanitizeRef } from './_lib.js';
 
-// Общее состояние сайта: тарифы, допуслуги, документы, фото и главная.
-// Читать может кто угодно, писать только фотограф.
-export default async function handler(req) {
+export default wrap(async req => {
   if (req.method === 'GET') {
-    const admin = isAdmin(req);
-    const pub = await readJSON('state.json', admin);
-    const out = { pub };
-    if (admin) out.ref = (await readJSON('ref.json', true)) || [];
-    return json(out);
+    const authed = checkToken(req);
+    const st = await readState();
+    if (!st) return json({ pub: null, ref: [] }); // клиент подставит встроенные тарифы-заглушки
+    const pub = { svc: st.svc, add: st.add, docs: st.docs, PH: st.PH };
+    if (!authed) return json({ pub }); // раздел «Возвраты» — служебный, наружу не отдаём
+    return json({ pub, ref: Array.isArray(st.ref) ? st.ref : [] });
   }
+
   if (req.method === 'POST') {
-    if (!isAdmin(req)) return json({ error: 'Нужен вход фотографа' }, 401);
-    let b;
-    try { b = await req.json(); } catch (e) { return json({ error: 'Некорректные данные' }, 400); }
-    const p = b && b.pub;
-    if (!p || !Array.isArray(p.svc) || !Array.isArray(p.add) || typeof p.docs !== 'object' || !p.PH)
-      return json({ error: 'Некорректное состояние' }, 400);
-    await writeJSON('state.json', { svc: p.svc, add: p.add, docs: p.docs, PH: p.PH, saved: Date.now() });
-    if (Array.isArray(b.ref)) await writeJSON('ref.json', b.ref);
+    if (!checkToken(req)) return errJson(401, 'Требуется вход фотографа');
+    const body = await req.json().catch(() => null);
+    if (!body || typeof body !== 'object') return errJson(400, 'Некорректный запрос');
+    const pub = sanitizePub(body.pub);
+    if (!pub) return errJson(400, 'Некорректные данные каталога или фото — обновите страницу и попробуйте снова');
+    const ref = sanitizeRef(body.ref);
+    if (!ref) return errJson(400, 'Некорректные данные возвратов');
+    await writeJSON(STATE_PATH, { ...pub, ref });
     return json({ ok: true });
   }
-  return json({ error: 'Метод не поддерживается' }, 405);
-}
+
+  return errJson(405, 'Метод не поддерживается');
+});

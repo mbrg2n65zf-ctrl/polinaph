@@ -1,82 +1,137 @@
-import crypto from 'node:crypto';
-import { json, isAdmin, readJSON, writeJSON } from './_lib.js';
+// /api/order — работа с одной заявкой.
+// GET  ?id=&k=             — клиент читает свою заявку по номеру и секретному ключу k.
+// POST {action:'create'}   — клиент создаёт заявку (цены считает СЕРВЕР по каталогу,
+//                            клиент присылает только id тарифа и допуслуг — подменить нельзя).
+// POST {action:'pay'}      — тестовая оплата по id + k.
+// POST {action:'admin'}    — сохранение правок заявки (только токен фотографа).
+import { json, errJson, wrap, asStr, asInt, checkToken, readState, readOrders, mutateOrders,
+         sanitizeOrder, publicOrder, DN, S0, A0, defaultDocs, nowRu, verifyInitData, notify } from './_lib.js';
+import { randomBytes } from 'node:crypto';
 
-const clip = (v, n = 300) => String(v == null ? '' : v).slice(0, n).trim();
-const stamp = () => new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
-const forClient = (o) => { const c = { ...o }; delete c.note; delete c.sum; return c; };
+const K_RE = /^[a-f0-9]{32}$/;
 
-export default async function handler(req) {
+export default wrap(async req => {
   const url = new URL(req.url);
 
-  // Клиент смотрит свою заявку: нужен номер и секретный ключ k
+  // ——— чтение заявки клиентом ————————————————————————————————————————————————
   if (req.method === 'GET') {
-    const id = Number(url.searchParams.get('id')), k = url.searchParams.get('k') || '';
-    const o = id ? await readJSON(`orders/${id}.json`, true) : null;
-    if (!o || o.k !== k) return json({ error: 'Заявка не найдена' }, 404);
-    return json({ order: forClient(o) });
+    const id = asInt(url.searchParams.get('id'));
+    const k = String(url.searchParams.get('k') || '');
+    if (!id || !K_RE.test(k)) return errJson(400, 'Некорректная ссылка на заявку');
+    const o = (await readOrders()).find(x => x.id === id && x.k === k);
+    if (!o) return errJson(404, 'Заявка не найдена');
+    return json({ ok: true, order: publicOrder(o) });
   }
-  if (req.method !== 'POST') return json({ error: 'Метод не поддерживается' }, 405);
 
-  let b;
-  try { b = await req.json(); } catch (e) { return json({ error: 'Некорректные данные' }, 400); }
+  if (req.method !== 'POST') return errJson(405, 'Метод не поддерживается');
 
-  // Новая заявка: цены считаются на сервере по актуальным тарифам
-  if (b.action === 'create') {
-    const x = b.order || {};
-    const state = await readJSON('state.json', true);
-    const svcList = state ? state.svc : null;
-    if (!svcList) return json({ error: 'Каталог ещё не опубликован фотографом' }, 409);
-    const s = svcList.find((v) => v.id === Number(x.svcId) && v.on);
-    if (!s) return json({ error: 'Эта услуга сейчас недоступна' }, 400);
-    const name = clip(x.name), contact = clip(x.contact), date = clip(x.date, 40), city = clip(x.city);
-    if (!name || !contact || !date || !city) return json({ error: 'Заполните обязательные поля' }, 400);
-    if (x.accepted !== true) return json({ error: 'Нужно принять документы' }, 400);
-    const ids = Array.isArray(x.adIds) ? x.adIds.map(Number) : [];
-    const ad = state.add
-      .filter((a) => a.on && a.cat === s.cat && ids.includes(a.id))
-      .map((a) => ({ name: a.name, price: a.price == null ? Math.round((s.full * a.pct) / 100) : a.price }));
-    const seq = (await readJSON('meta/seq.json', true)) || { n: 0 };
-    seq.n += 1;
-    await writeJSON('meta/seq.json', seq);
-    const acc = ['contract', 'privacy', 'consent'].map((k) => ({
-      doc: ({ contract: 'Договор оказания услуг', privacy: 'Политика обработки персональных данных', consent: 'Согласие на обработку персональных данных' })[k],
-      ver: state.docs[k] ? state.docs[k].at(-1).v : 1,
-      at: stamp(),
-      how: 'чекбокс в приложении',
-    }));
-    const o = {
-      id: seq.n, k: crypto.randomBytes(16).toString('hex'),
-      name, contact, date, time: clip(x.time, 80), city, com: clip(x.com, 1000),
-      svc: s.name, cat: s.cat, ad,
-      total: s.full + ad.reduce((t, a) => t + a.price, 0), first: s.first,
-      paid: 0, status: 'Ожидает оплаты', pay: 'Ожидает оплаты', note: '', acc,
-      log: [stamp() + ' — Заявка создана; подтверждены документы (версии зафиксированы)'],
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== 'object' || !body.action) return errJson(400, 'Некорректный запрос');
+
+  // ——— создание заявки клиентом ——————————————————————————————————————————————
+  if (body.action === 'create') {
+    const o = (body.order && typeof body.order === 'object') ? body.order : {};
+    const name = asStr(o.name, 120), contact = asStr(o.contact, 200),
+          date = asStr(o.date, 40), time = asStr(o.time, 60),
+          city = asStr(o.city, 120), com = asStr(o.com, 2000);
+    if (!name || !contact || !date || !city) return errJson(400, 'Заполните обязательные поля заявки');
+
+    // каталог берём из сохранённого состояния; если фотограф ещё не сохранял — встроенный резерв
+    const st = await readState();
+    const svcList = st && Array.isArray(st.svc) && st.svc.length ? st.svc : S0;
+    const addList = st && Array.isArray(st.add) ? st.add : A0;
+    const docs = st && st.docs && typeof st.docs === 'object' ? st.docs : defaultDocs();
+
+    const svc = svcList.find(s => s && s.id === asInt(o.svcId) && s.on !== false);
+    if (!svc) return errJson(400, 'Выбранный тариф недоступен — обновите страницу и попробуйте снова');
+
+    const ad = (Array.isArray(o.adIds) ? o.adIds : []).map(asInt).filter(Boolean)
+      .map(id => addList.find(a => a && a.id === id && a.cat === svc.cat && a.on !== false))
+      .filter(Boolean)
+      .map(a => ({ name: a.name, price: a.price == null ? Math.round((svc.full * (a.pct || 0)) / 100) : a.price }));
+    const total = (svc.full || 0) + ad.reduce((s, x) => s + (x.price || 0), 0);
+    const first = svc.first == null ? null : svc.first;
+
+    // версии юридических документов фиксируем на сервере в момент заявки
+    const acc = ['contract', 'privacy', 'consent'].map(k => {
+      const list = Array.isArray(docs[k]) ? docs[k] : [];
+      const last = list[list.length - 1];
+      return { doc: DN[k], ver: last ? (asInt(last.v) ?? 1) : 1, at: nowRu(), how: 'чекбокс в приложении' };
+    });
+
+    // атрибуция Telegram-пользователя (если заявка пришла из мини-приложения)
+    const user = verifyInitData(asStr(o.tg, 4096), process.env.TELEGRAM_BOT_TOKEN);
+
+    const orders = await readOrders();
+    const id = orders.reduce((m, x) => Math.max(m, asInt(x && x.id) ?? 0), 0) + 1;
+    const k = randomBytes(16).toString('hex');
+    const order = {
+      id, k,
+      svcId: svc.id, svc: asStr(svc.name, 120), cat: asStr(svc.cat, 20),
+      name, contact, date, time, city, com, ad,
+      total, first, paid: 0,
+      status: 'Ожидает оплаты', pay: 'Ожидает оплаты',
+      note: '', cons: '', sum: '', alt: '', cdate: '',
+      log: [nowRu() + ' — Заявка создана; подтверждены документы (версии зафиксированы)' + (user ? '; заявка из Telegram' : '')],
+      acc, user,
     };
-    await writeJSON(`orders/${o.id}.json`, o);
-    return json({ order: forClient(o) });
+
+    await mutateOrders(list => {
+      list.push(order);
+      return again => again.some(x => x.k === k);
+    });
+
+    notify(
+      `📷 Новая заявка №${id} — ${order.svc}\n` +
+      `Дата: ${date}${time ? ' ' + time : ''}\n` +
+      `${name}, ${city}\nКонтакт: ${contact}\n` +
+      `Сумма: ${total} ₽${first != null ? `, первый платёж ${first} ₽` : ''}` +
+      (com ? `\nКомментарий: ${com}` : '') +
+      (user ? `\nTelegram: ${user.name || ''} ${user.username ? '@' + user.username : ''}` : '')
+    ).catch(() => {});
+
+    return json({ ok: true, order }); // order содержит k — клиент сохранит его для доступа к заявке
   }
 
-  // Тестовая оплата своей заявки
-  if (b.action === 'pay') {
-    const o = await readJSON(`orders/${Number(b.id)}.json`, true);
-    if (!o || o.k !== b.k) return json({ error: 'Заявка не найдена' }, 404);
-    if (o.status !== 'Ожидает оплаты' || o.first == null) return json({ error: 'Оплата сейчас недоступна' }, 400);
-    o.paid = o.first;
-    o.pay = 'Успешен (ТЕСТ)';
-    o.status = 'Оплачен, ожидает консультации';
-    o.log.unshift(stamp() + ' — Тестовый платёж ' + o.first.toLocaleString('ru-RU') + ' ₽ — не реальные деньги');
-    await writeJSON(`orders/${o.id}.json`, o);
-    return json({ order: forClient(o) });
+  // ——— тестовая оплата клиентом (по id + секретному ключу) ——————————————————————
+  if (body.action === 'pay') {
+    const id = asInt(body.id);
+    const k = String(body.k || '');
+    if (!id || !K_RE.test(k)) return errJson(400, 'Некорректный запрос');
+    let updated = null;
+    await mutateOrders(orders => {
+      const o = orders.find(x => x.id === id && x.k === k);
+      if (!o) return null;
+      if (o.status === 'Ожидает оплаты') {
+        o.paid = o.first == null ? 0 : o.first;
+        o.pay = 'Успешен (ТЕСТ)';
+        o.status = 'Оплачен, ожидает консультации';
+        o.log = o.log || [];
+        o.log.unshift(nowRu() + ' — Тестовый платёж ' + (o.paid || 0) + ' ₽ — не реальные деньги');
+      }
+      updated = o;
+      return again => again.some(x => x.id === id && x.k === k);
+    });
+    if (!updated) return errJson(404, 'Заявка не найдена');
+    notify(`💳 Тестовый платёж по заявке №${id} (${updated.total || 0} ₽). Реальные деньги не списываются.`).catch(() => {});
+    return json({ ok: true, order: publicOrder(updated) });
   }
 
-  // Изменения от фотографа
-  if (b.action === 'admin') {
-    if (!isAdmin(req)) return json({ error: 'Нужен вход фотографа' }, 401);
-    const n = b.order || {};
-    const old = await readJSON(`orders/${Number(n.id)}.json`, true);
-    if (!old) return json({ error: 'Заявка не найдена' }, 404);
-    await writeJSON(`orders/${old.id}.json`, { ...n, id: old.id, k: old.k });
+  // ——— сохранение правок заявки админкой ————————————————————————————————————————
+  if (body.action === 'admin') {
+    if (!checkToken(req)) return errJson(401, 'Требуется вход фотографа');
+    const inc = (body.order && typeof body.order === 'object') ? body.order : {};
+    const id = asInt(inc.id);
+    if (!id) return errJson(400, 'Некорректная заявка');
+    await mutateOrders(orders => {
+      const cur = orders.find(x => x.id === id);
+      const norm = sanitizeOrder(inc, id, (cur && cur.k) || (K_RE.test(inc.k || '') ? inc.k : randomBytes(16).toString('hex')));
+      if (cur) Object.assign(cur, norm);
+      else orders.push(norm);
+      return again => again.some(x => x.id === id);
+    });
     return json({ ok: true });
   }
-  return json({ error: 'Неизвестное действие' }, 400);
-}
+
+  return errJson(400, 'Неизвестное действие');
+});

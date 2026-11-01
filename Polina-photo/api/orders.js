@@ -1,19 +1,11 @@
-import { list } from '@vercel/blob';
-import { json, isAdmin, readJSON } from './_lib.js';
+// GET /api/orders — полный список заявок для админки (только с токеном фотографа).
+import { json, errJson, wrap, checkToken, readOrders } from './_lib.js';
 
-// Список всех заявок: только для фотографа
-export default async function handler(req) {
-  if (!isAdmin(req)) return json({ error: 'Нужен вход фотографа' }, 401);
-  const out = [];
-  let cursor;
-  do {
-    const r = await list({ prefix: 'orders/', cursor, limit: 1000 });
-    for (const b of r.blobs) {
-      const o = await readJSON(b.pathname, true);
-      if (o) out.push(o);
-    }
-    cursor = r.hasMore ? r.cursor : undefined;
-  } while (cursor);
-  out.sort((a, b) => b.id - a.id);
-  return json({ orders: out });
-}
+export default wrap(async req => {
+  if (req.method !== 'GET') return errJson(405, 'Метод не поддерживается');
+  if (!checkToken(req)) return errJson(401, 'Требуется вход фотографа');
+  const orders = await readOrders();
+  orders.sort((a, b) => (b.id || 0) - (a.id || 0)); // новые сверху
+  // ключ k (доступ к заявке у клиента) наружу админке не нужен — вырезаем
+  return json({ orders: orders.map(o => ({ ...o, k: undefined })) });
+});

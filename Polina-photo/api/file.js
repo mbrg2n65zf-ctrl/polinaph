@@ -1,19 +1,31 @@
-import { get } from '@vercel/blob';
+// GET /api/file?p=<путь> — раздача фото и документов из приватного Blob-хранилища.
+// Фото публичны (портфолио), документы — юридические файлы для клиентов.
+// Путь жёстко валидируется: только photos/… и docs/… с разрешёнными расширениями.
+import { errJson, wrap, blobGet, validPath, ctypeOf, isPhotoPath } from './_lib.js';
 
-const OK = /^(photos\/p\d+\.jpg|docs\/d\d+\.(pdf|docx?|odt|rtf|txt))$/i;
+export default wrap(async req => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return errJson(405, 'Метод не поддерживается');
 
-// Отдаёт только фото и документы. Заявки клиентов отсюда получить нельзя.
-export default async function handler(req) {
   const p = new URL(req.url).searchParams.get('p') || '';
-  if (!OK.test(p)) return new Response('Not found', { status: 404 });
-  const r = await get(p, { access: 'private' });
-  if (!r || r.statusCode !== 200) return new Response('Not found', { status: 404 });
-  return new Response(r.stream, {
-    headers: {
-      'Content-Type': r.blob.contentType,
-      'Content-Disposition': 'inline',
-      'X-Content-Type-Options': 'nosniff',
-      'Cache-Control': 'public, max-age=31536000, immutable',
-    },
-  });
-}
+  if (!validPath(p)) return errJson(400, 'Недопустимый путь файла');
+
+  try {
+    const buf = await blobGet(p); // фото/документы неизменяемы по своим путям — кэш разрешён
+    const fname = p.split('/').pop();
+    return new Response(req.method === 'HEAD' ? null : buf, {
+      status: 200,
+      headers: {
+        'Content-Type': ctypeOf(p),
+        'Content-Length': String(buf.length),
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Disposition': `inline; filename="${fname}"`,
+      },
+    });
+  } catch (e) {
+    if (e && (e.status === 404 || /not\s*found|notfound|does\s*not\s*exist|nosuchkey/i.test(String((e && e.message) || e)))) {
+      return errJson(404, 'Файл не найден');
+    }
+    throw e;
+  }
+});
