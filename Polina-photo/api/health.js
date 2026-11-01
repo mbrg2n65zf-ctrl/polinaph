@@ -21,8 +21,15 @@ async function handler(req) {
     name: 'Хранилище фото и заявок (Blob)', ok: blobOk,
     hint: blobOk ? null : 'Vercel → Storage → Blob (режим Private) должно быть подключено к проекту, затем Redeploy. Ответ: ' + blobErr,
   });
-  const tg = !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
-  checks.push({ name: 'Уведомления в Telegram (необязательно)', ok: true, optional: true, hint: tg ? 'включены' : 'выключены' });
+  const bot = process.env.TELEGRAM_BOT_TOKEN || '';
+  checks.push({
+    name: 'Токен бота Telegram («Мои заказы» по аккаунту)', ok: !!bot,
+    hint: bot ? null : 'Не задан: «Мои заказы» будут видны только на том устройстве, где оформлен заказ. Токен даёт @BotFather; добавить в Vercel → Settings → Environment Variables, затем Redeploy',
+  });
+  checks.push({
+    name: 'Уведомления в Telegram (необязательно)', ok: true, optional: true,
+    hint: process.env.TELEGRAM_CHAT_ID ? 'включены' : 'выключены: добавьте TELEGRAM_CHAT_ID (ваш chat id), чтобы получать новые заявки в личку от бота',
+  });
   const ok = checks.every((c) => c.ok);
   if (!checkToken(req)) return json({ ok });
   return json({ ok, checks });

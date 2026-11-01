@@ -129,7 +129,17 @@ async function api(path,o={}){
  return d}
 function applyState(p){D.svc=Array.isArray(p.svc)?p.svc:D.svc;D.add=Array.isArray(p.add)?p.add:D.add;if(p.docs&&typeof p.docs=='object')D.docs=p.docs;PH=p.PH&&typeof p.PH=='object'?p.PH:{s:[],a:[],q:1,f:[]};PH.f=PH.f||[];PH.s=PH.s||[];PH.a=PH.a||[];PH.hero=typeof PH.hero=='string'?PH.hero:'';
  for(const id of [...PH.s.map(x=>x.id),...PH.a.flatMap(a=>a.ph)])IMG[id]=fileUrl('photos/'+id+'.jpg')}
-async function loadMine(){D.ord=(await Promise.all(myList().map(m=>api('/api/order?id='+m.id+'&k='+m.k,{auth:false}).then(r=>r.order).catch(()=>null)))).filter(Boolean).sort((a,b)=>b.id-a.id)}
+async function loadMine(){
+ // Свои заявки: по подписанному Telegram initData — видны на любом устройстве,
+ // где клиент вошёл в свой аккаунт. Плюс тихий запасной список этого устройства
+ // (заявки, сделанные в обычном браузере или при не настроенном боте).
+ let tg=[];
+ const d=TGDATA();
+ if(SRV&&d){try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'mine',tg:d}});if(r&&Array.isArray(r.orders))tg=r.orders}catch(e){}}
+ const dev=(await Promise.all(myList().map(m=>api('/api/order?id='+m.id+'&k='+m.k,{auth:false}).then(r=>r.order).catch(()=>null)))).filter(Boolean);
+ const seen={},all=[];
+ for(const o of tg.concat(dev))if(o&&!seen[o.id]){seen[o.id]=1;all.push(o)}
+ D.ord=all.sort((a,b)=>b.id-a.id)}
 async function initServer(){
  if(location.protocol=='file:'){BOOT='';return}
  try{const r=await api('/api/state',{auth:false});SRV=true;D.ord=[];D.ref=[];
@@ -151,7 +161,7 @@ function admToggle(){
  if(st.adm){if(SRV){TOKEN='';try{localStorage.removeItem('pk_tok')}catch(e){}}st.adm=false;st.tab=ADMIN_PAGE?'adm':'port';render();if(SRV)loadMine().then(render);return}
  if(!SRV){st.adm=true;st.tab='adm';render()}}
 const loginScreen=()=>`<h1 style="margin-top:28px">Вход для фотографа</h1><p class="mut">Введите пароль доступа.</p><label>Пароль<input id="apw" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')admLogin()"></label><div id="aerr" class="err" role="alert"></div><br><div class="row"><button class="btn" id="abtn" onclick="admLogin()">Войти</button><a class="btn s" href="/">На сайт</a></div>`;
-async function healthCheck(){try{const r=await api('/api/health',{auth:false});modal(`<h2>${r.ok?'Всё настроено':'Есть проблемы'}</h2>`+r.checks.map(c=>`<p><b>${c.ok?'✓':'✗'} ${esc(c.name)}</b>${c.hint?`<br><span class="mut">${esc(c.hint)}</span>`:''}</p>`).join(''))}catch(e){toast(e.message)}}
+async function healthCheck(){try{const r=await api('/api/health');if(!r||!Array.isArray(r.checks))return modal('<h2>Нет данных</h2><p class="mut">Сервер не вернул подробности проверки. Выйдите из админки и войдите заново, затем повторите.</p>');modal(`<h2>${r.ok?'Всё настроено':'Есть проблемы'}</h2>`+r.checks.map(c=>`<p><b>${c.ok?'✓':'✗'} ${esc(c.name)}</b>${c.hint?`<br><span class="mut">${esc(c.hint)}</span>`:''}</p>`).join(''))}catch(e){toast(e.message)}}
 async function admLogin(){const i=$('#apw');if(!i||!i.value)return;const b=$('#abtn'),er=$('#aerr');b.disabled=true;er.textContent='';
  try{const r=await api('/api/login',{method:'POST',body:{password:i.value},auth:false});TOKEN=r.token;try{localStorage.setItem('pk_tok',TOKEN)}catch(e){}await enterAdm()}
  catch(e){const x=$('#aerr');if(x)x.textContent=e.message;const y=$('#abtn');if(y)y.disabled=false}}
@@ -225,7 +235,7 @@ function phoHTML(){
  const d=st.pd||'ind';
  let h=`<div class="warn">${SRV?'Фото сжимаются до 1600 px и сохраняются на сервере: их видят все клиенты. Пока фото не загружены, на сайте показываются примерные плитки.':'Фото сжимаются до 1600 px и хранятся в этом браузере (макет). Пока фото не загружены, на сайте показываются примерные плитки.'}</div>
  <div class="card"><label>Куда загрузить<select onchange="st.pd=this.value;render()">${TL.filter(t=>t[0]!='wed').map(t=>`<option value="${t[0]}" ${d==t[0]?'selected':''}>${t[1]}</option>`).join('')}${PH.a.map(a=>`<option value="${a.id}" ${d==a.id?'selected':''}>Свадьбы → ${esc(a.name)}</option>`).join('')}<option value="new" ${d=='new'?'selected':''}>Свадьбы → новый альбом…</option></select></label>${d=='new'?`<label>Название нового альбома<input id="pnew" placeholder="Например: Анна и Михаил"></label>`:''}<label>Фотографии (можно выбрать несколько)<input type="file" accept="image/*" multiple onchange="phUp(this)"></label></div>
- <h2>Главная страница</h2><p class="mut">Главное фото открывается первым на сайте — назначьте его кнопкой ◇ на любом фото ниже (повторное нажатие снимает выбор). Затем идут фото, отмеченные сердечком ♥, — клиенты видят их первыми на главной странице, без подписи. Порядок меняют стрелки. Остальные фото видны в разделах по темам.</p>${PH.hero&&IMG[PH.hero]?`<div class="mut" style="font-size:13px;margin-bottom:4px">Сейчас главное фото:</div><div style="width:110px">${IM(PH.hero)}</div>`:''}${featHTML()}<h2>Свадебные альбомы</h2>`;
+ <h2>Главная страница</h2><p class="mut">Главное фото открывается первым на сайте — назначьте его кнопкой ◇ на любом фото ниже (повторное нажатие снимает выбор). В разделе «Все» клиент видит только фото, отмеченные сердечком ♥, — без подписи «Избранное»; порядок меняют стрелки. Остальные фото видны в разделах по темам.</p>${PH.hero&&IMG[PH.hero]?`<div class="mut" style="font-size:13px;margin-bottom:4px">Сейчас главное фото:</div><div style="width:110px">${IM(PH.hero)}</div>`:''}${featHTML()}<h2>Свадебные альбомы</h2>`;
  h+=PH.a.length?PH.a.map(a=>`<div class="card"><label>Название<input value="${esc(a.name)}" onchange="albSet('${a.id}','name',this.value)"></label><label>Подпись (тип съёмки)<input value="${esc(a.sub)}" onchange="albSet('${a.id}','sub',this.value)"></label><div class="mut">${a.ph.length} фото. Обложка — первое фото, звёздочка делает обложкой другое.</div><div style="${GR}">${a.ph.map(id=>thumb(id,a.id)).join('')}</div><button class="btn r" onclick="albAsk('${a.id}')">Удалить альбом</button></div>`).join(''):'<p class="mut">Альбомов пока нет: выберите «новый альбом» выше.</p>';
  TL.filter(t=>t[0]!='wed').forEach(t=>{const l=PH.s.filter(p=>p.cat==t[0]);h+=`<h2>${t[1]}</h2>`+(l.length?`<div style="${GR}">${l.map(p=>thumb(p.id,null)).join('')}</div>`:'<p class="mut">Фото пока нет.</p>')});
  return h
@@ -242,9 +252,10 @@ function galHTML(){
   return `<div style="grid-column:1/-1"><button class="btn s" onclick="openAlb(null)">← Все альбомы</button><h2 style="margin:14px 0 2px">${esc(a.n)}</h2><div class="mut">${a.s?esc(a.s)+' · ':''}${a.c} фото</div></div>`+tilesOf(VL);
  }
  if(hasReal()){
-  // «Все»: избранные фото первыми (без подписи), за ними остальные; свадебные
-  // альбомы — в своём разделе. Так клиент видит лучшие фото, не встречая слова «Избранное».
-  if(st.cat=='all'){VL=[...PH.f,...PH.s.map(p=>p.id).filter(id=>!PH.f.includes(id))].map(id=>({u:IMG[id]})).filter(p=>p.u)}
+  // «Все» = только фото, отмеченные сердечком ♥, — без подписи «Избранное».
+  // Главное фото открывается крупным блоком выше и в этой сетке не дублируется,
+  // пока его тоже не отметить сердечком.
+  if(st.cat=='all'){VL=PH.f.map(id=>({u:IMG[id]})).filter(p=>p.u);if(!VL.length)return '<p class="mut" style="grid-column:1/-1">Фотографии появятся совсем скоро.</p>'}
   else VL=PH.s.filter(p=>p.cat==st.cat).map(p=>({u:IMG[p.id]})).filter(p=>p.u)}
  else VL=TL.flatMap((c,i)=>[0,1].map(j=>[c,(i*50+j*25)%360])).filter(x=>st.cat=='all'||x[0][0]==st.cat).map(x=>({bg:phBg(24+x[1]/14,x[1]%5),t:x[0][1]}));
  return VL.length?tilesOf(VL):EMPTY;

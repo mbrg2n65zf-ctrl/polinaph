@@ -93,6 +93,17 @@ const handle = wrap(async req => {
     return json({ ok: true, order }); // order содержит k — клиент сохранит его для доступа к заявке
   }
 
+  // ——— «мои заявки» клиента: привязка к Telegram-аккаунту ————————————————————————————
+  // Telegram подписывает initData при каждом открытии мини-приложения. Проверив
+  // подпись, сервер уверен, что перед ним владелец аккаунта, и отдаёт только его
+  // заявки — с любого устройства. Без валидной подписи список не выдаётся.
+  if (body.action === 'mine') {
+    const user = verifyInitData(asStr(body.tg, 4096), process.env.TELEGRAM_BOT_TOKEN);
+    if (!user || !user.id) return errJson(401, 'Не удалось подтвердить Telegram-аккаунт');
+    const list = (await readOrders()).filter(o => o && o.user && o.user.id === user.id);
+    return json({ ok: true, orders: list.map(publicOrder) });
+  }
+
   // ——— тестовая оплата клиентом (по id + секретному ключу) ——————————————————————
   if (body.action === 'pay') {
     const id = asInt(body.id);
