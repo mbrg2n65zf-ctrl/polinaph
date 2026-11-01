@@ -1,7 +1,9 @@
-import { json, readJSON, writeJSON, wrap } from './_lib.js';
+import { json, readJSON, writeJSON, wrap, checkToken } from './_lib.js';
 
-// Проверка настроек: откройте /api/health в браузере — увидите, что работает, а что нет.
-async function handler() {
+// Проверка настроек. Наружу (без токена) отдаётся только общий статус ok:true/false —
+// без деталей и подсказок, чтобы не раскрывать устройство проекта. Полный отчёт
+// видит только вошедший фотограф: ссылка «Проверить настройки сервера» в подвале админки.
+async function handler(req) {
   const checks = [];
   const pw = process.env.ADMIN_PASSWORD || '';
   checks.push({
@@ -21,7 +23,9 @@ async function handler() {
   });
   const tg = !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
   checks.push({ name: 'Уведомления в Telegram (необязательно)', ok: true, optional: true, hint: tg ? 'включены' : 'выключены' });
-  return json({ ok: checks.every((c) => c.ok), checks });
+  const ok = checks.every((c) => c.ok);
+  if (!checkToken(req)) return json({ ok });
+  return json({ ok, checks });
 }
 const handle = wrap(handler);
 

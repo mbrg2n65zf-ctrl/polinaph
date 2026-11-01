@@ -112,7 +112,7 @@ const TGSP=(()=>{try{return (window.Telegram&&Telegram.WebApp&&Telegram.WebApp.i
 const ADM_OK=/admin/.test(location.hash+location.search)||TGSP=='admin';
 const ADMIN_PAGE=/^\/admin\/?$/.test(location.pathname)||TGSP=='admin'||/[?&]tgWebAppStartParam=admin(&|$)/.test(location.search)||(location.protocol!='file:'&&/admin/.test(location.hash+location.search)),TGDATA=()=>{try{return Telegram.WebApp.initData||''}catch(e){return ''}};
 let BOOT=location.protocol=='file:'?'':'load',BOOTERR='',SUBM=false;
-let st={tab:ADMIN_PAGE?'adm':'port',cat:'feat',adm:false,at:'ord'};
+let st={tab:ADMIN_PAGE?'adm':'port',cat:'all',adm:false,at:'ord'};
 let SRV=false,PERR='',TOKEN=(()=>{try{const t=localStorage.getItem('pk_tok')||'';return +t.split('.')[0]>Date.now()?t:''}catch(e){return ''}})();
 const MYK='pk_my',myList=()=>{try{return JSON.parse(localStorage.getItem(MYK))||[]}catch(e){return[]}};
 const fileUrl=p=>'/api/file?p='+encodeURIComponent(p);
@@ -127,7 +127,7 @@ async function api(path,o={}){
  if(!r.ok){if(r.status==401&&TOKEN&&path!='/api/login'){TOKEN='';try{localStorage.removeItem('pk_tok')}catch(e){}st.adm=false;render()}throw new Error((d&&d.error)||('Ошибка сервера ('+r.status+')'))}
  if(d===null)throw new Error('Сервер вернул неожиданный ответ ('+r.status+')');
  return d}
-function applyState(p){D.svc=Array.isArray(p.svc)?p.svc:D.svc;D.add=Array.isArray(p.add)?p.add:D.add;if(p.docs&&typeof p.docs=='object')D.docs=p.docs;PH=p.PH&&typeof p.PH=='object'?p.PH:{s:[],a:[],q:1,f:[]};PH.f=PH.f||[];PH.s=PH.s||[];PH.a=PH.a||[];
+function applyState(p){D.svc=Array.isArray(p.svc)?p.svc:D.svc;D.add=Array.isArray(p.add)?p.add:D.add;if(p.docs&&typeof p.docs=='object')D.docs=p.docs;PH=p.PH&&typeof p.PH=='object'?p.PH:{s:[],a:[],q:1,f:[]};PH.f=PH.f||[];PH.s=PH.s||[];PH.a=PH.a||[];PH.hero=typeof PH.hero=='string'?PH.hero:'';
  for(const id of [...PH.s.map(x=>x.id),...PH.a.flatMap(a=>a.ph)])IMG[id]=fileUrl('photos/'+id+'.jpg')}
 async function loadMine(){D.ord=(await Promise.all(myList().map(m=>api('/api/order?id='+m.id+'&k='+m.k,{auth:false}).then(r=>r.order).catch(()=>null)))).filter(Boolean).sort((a,b)=>b.id-a.id)}
 async function initServer(){
@@ -150,7 +150,7 @@ const save=()=>{if(SRV){if(TOKEN&&st.adm)scheduleSync();return}try{localStorage.
 function admToggle(){
  if(st.adm){if(SRV){TOKEN='';try{localStorage.removeItem('pk_tok')}catch(e){}}st.adm=false;st.tab=ADMIN_PAGE?'adm':'port';render();if(SRV)loadMine().then(render);return}
  if(!SRV){st.adm=true;st.tab='adm';render()}}
-const loginScreen=()=>`<h1 style="margin-top:28px">Вход для фотографа</h1><p class="mut">Введите пароль, который вы задали в настройках Vercel (переменная ADMIN_PASSWORD).</p><label>Пароль<input id="apw" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')admLogin()"></label><div id="aerr" class="err" role="alert"></div><br><div class="row"><button class="btn" id="abtn" onclick="admLogin()">Войти</button><a class="btn s" href="/">На сайт</a></div><p class="mut" style="margin-top:28px"><a href="#" onclick="healthCheck();return false" style="color:var(--mut)">Проверить настройки сервера</a></p>`;
+const loginScreen=()=>`<h1 style="margin-top:28px">Вход для фотографа</h1><p class="mut">Введите пароль доступа.</p><label>Пароль<input id="apw" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')admLogin()"></label><div id="aerr" class="err" role="alert"></div><br><div class="row"><button class="btn" id="abtn" onclick="admLogin()">Войти</button><a class="btn s" href="/">На сайт</a></div>`;
 async function healthCheck(){try{const r=await api('/api/health',{auth:false});modal(`<h2>${r.ok?'Всё настроено':'Есть проблемы'}</h2>`+r.checks.map(c=>`<p><b>${c.ok?'✓':'✗'} ${esc(c.name)}</b>${c.hint?`<br><span class="mut">${esc(c.hint)}</span>`:''}</p>`).join(''))}catch(e){toast(e.message)}}
 async function admLogin(){const i=$('#apw');if(!i||!i.value)return;const b=$('#abtn'),er=$('#aerr');b.disabled=true;er.textContent='';
  try{const r=await api('/api/login',{method:'POST',body:{password:i.value},auth:false});TOKEN=r.token;try{localStorage.setItem('pk_tok',TOKEN)}catch(e){}await enterAdm()}
@@ -163,7 +163,7 @@ const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';setT
 const log=(o,t)=>{if(o)(o.log=o.log||[]).unshift(now()+' — '+t)};
 const ord=id=>D.ord.find(o=>o.id==id);
 function go(t){st.tab=t;render();if(t=='my'&&SRV&&!st.adm)loadMine().then(render)}
-const foot=()=>`<p class="mut" style="margin-top:30px">${(st.adm||(!SRV&&ADM_OK))?`<a href="#" onclick="admToggle();return false" style="color:var(--mut)">${st.adm?'Выйти из режима фотографа':'Режим фотографа (демо)'}</a><br>`:''}${SRV?'':'Демо-прототип: данные хранятся только в этом браузере. В рабочей версии права проверяет сервер.'}</p>`;
+const foot=()=>`<p class="mut" style="margin-top:30px">${(st.adm||(!SRV&&ADM_OK))?`<a href="#" onclick="admToggle();return false" style="color:var(--mut)">${st.adm?'Выйти из режима фотографа':'Режим фотографа (демо)'}</a><br>`:''}${st.adm?`<a href="#" onclick="healthCheck();return false" style="color:var(--mut)">Проверить настройки сервера</a><br>`:''}${SRV?'':'Демо-прототип: данные хранятся только в этом браузере. В рабочей версии права проверяет сервер.'}</p>`;
 function render(){
  if(BOOT=='load'){$('#nav').innerHTML='';$('#app').innerHTML='<p class="mut" style="margin-top:38vh;text-align:center">Загрузка…</p>';return}
  if(BOOT=='err'){$('#nav').innerHTML='';$('#app').innerHTML=`<h1 style="margin-top:18vh">Не удалось загрузить сайт</h1><p class="mut">${esc(BOOTERR)}</p><button class="btn" onclick="retryBoot()">Повторить</button>`;return}
@@ -173,19 +173,22 @@ function render(){
  $('#app').innerHTML=({port,svc,my,adm})[st.tab]()+(gate?'':foot());
 }
 const TL=[['ind','Индивидуальные'],['love','Love Story'],['preg','Беременность'],['fam','Семейные истории'],['wed','Свадьбы'],['rep','Репортаж']];
+// Главное фото на первой странице: PH.hero — id фото ('p123') или ''. Если фото
+// ещё не загружено (IMG пуст), показываем нейтральную заглушку.
+const heroHTML=()=>PH.hero&&IMG[PH.hero]?`<div role="img" aria-label="Главное фото" style="margin:26px 0 0;aspect-ratio:4/5;background:url('${IMG[PH.hero]}') center/cover"></div>`:`<div role="img" aria-label="Главное фото" style="margin:26px 0 0;aspect-ratio:4/5;background:linear-gradient(170deg,#f1ebe4,#d8cbc0);display:flex;align-items:flex-end;padding:14px;color:rgba(0,0,0,.45);font-size:12px">Здесь будет главное фото</div>`;
 function port(){
  const t=TL.flatMap((c,i)=>[0,1].map(j=>[c,(i*50+j*25)%360]));
  return `<p style="font:500 14px Manrope,Inter,sans-serif;color:var(--wine);margin:28px 0 8px">фотограф</p><h1>Полина<br>Кушнаренко</h1><p class="mut" style="max-width:34ch;font-size:15px">Живые, тёплые съёмки: портреты, семья, свадьбы и репортажи.</p>
  <button class="btn" onclick="go('svc')">Услуги и цены</button><button class="btn s" onclick="toast('Контакт фотографа будет указан в настройках бота')">Связаться</button>
- <div role="img" aria-label="Главное фото" style="margin:26px 0 0;aspect-ratio:4/5;background:linear-gradient(170deg,#f1ebe4,#d8cbc0);display:flex;align-items:flex-end;padding:14px;color:rgba(0,0,0,.45);font-size:12px">Здесь будет главное фото</div>
- <div class="chips" role="group" aria-label="Альбомы">${[['feat','Избранное'],...TL].map(c=>`<button class="chip ${st.cat==c[0]?'on':''}" aria-pressed="${st.cat==c[0]}" onclick="setCat('${c[0]}')">${c[1]}</button>`).join('')}</div>
+ ${heroHTML()}
+ <div class="chips" role="group" aria-label="Разделы">${[['all','Все'],...TL].map(c=>`<button class="chip ${st.cat==c[0]?'on':''}" aria-pressed="${st.cat==c[0]}" onclick="setCat('${c[0]}')">${c[1]}</button>`).join('')}</div>
  <div class="grid" id="gal">${galHTML()}</div>`;
 }
-function setCat(c){st.cat=c;st.alb=null;const d=document.createElement('div');d.innerHTML=port();$('#gal').innerHTML=d.querySelector('#gal').innerHTML;document.querySelectorAll('.chips .chip').forEach((b,i)=>{const on=(i==0?'feat':TL[i-1][0])==c;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)})}
+function setCat(c){st.cat=c;st.alb=null;const d=document.createElement('div');d.innerHTML=port();$('#gal').innerHTML=d.querySelector('#gal').innerHTML;document.querySelectorAll('.chips .chip').forEach((b,i)=>{const on=(i==0?'all':TL[i-1][0])==c;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)})}
 let VL=[],VI=0;
 const WA=[{n:'Анна и Михаил',s:'Камерная свадьба',h:20,c:14},{n:'Елена и Артём',s:'ЗАГС и прогулка',h:8,c:10},{n:'Мария и Дмитрий',s:'Свадебный день',h:34,c:18}];
 const phBg=(h,i)=>`linear-gradient(160deg,hsl(${h},22%,${89-(i%5)*3}%),hsl(${h},18%,${78-(i%4)*3}%))`;
-let PH=(()=>{try{return JSON.parse(localStorage.getItem('pk_ph'))}catch(e){return null}})()||{s:[],a:[],q:1,f:[]};PH.s=Array.isArray(PH.s)?PH.s:[];PH.a=Array.isArray(PH.a)?PH.a:[];PH.f=Array.isArray(PH.f)?PH.f:[];PH.q=+PH.q||1;
+let PH=(()=>{try{return JSON.parse(localStorage.getItem('pk_ph'))}catch(e){return null}})()||{s:[],a:[],q:1,f:[]};PH.s=Array.isArray(PH.s)?PH.s:[];PH.a=Array.isArray(PH.a)?PH.a:[];PH.f=Array.isArray(PH.f)?PH.f:[];PH.q=+PH.q||1;PH.hero=typeof PH.hero=='string'?PH.hero:'';
 const IMG={};let idb=null;
 const phSave=()=>{if(SRV){if(TOKEN&&st.adm)scheduleSync();return}try{localStorage.setItem('pk_ph',JSON.stringify(PH))}catch(e){toast('Не удалось сохранить список фото')}};
 const idbOpen=()=>new Promise(r=>{try{const q=indexedDB.open('pk_img',1);q.onupgradeneeded=()=>q.result.createObjectStore('i');q.onsuccess=()=>{idb=q.result;r()};q.onerror=()=>r();q.onblocked=()=>r()}catch(e){r()}});
@@ -206,22 +209,23 @@ async function phUp(inp){
  toast(n?'Загружено фото: '+n+(SRV?' (сохраняю…)':''):'Не удалось загрузить: '+(PERR||'файл не подошёл'))
 }
 function albSet(id,k,v){const a=PH.a.find(x=>x.id==id);if(a){a[k]=v;phSave()}}
-function phDel(aid,id){if(aid){const a=PH.a.find(x=>x.id==aid);a.ph=a.ph.filter(x=>x!=id)}else PH.s=PH.s.filter(p=>p.id!=id);delete IMG[id];idbDel(id);PH.f=PH.f.filter(x=>x!=id);phSave();render();toast('Фото удалено')}
+function phDel(aid,id){if(aid){const a=PH.a.find(x=>x.id==aid);a.ph=a.ph.filter(x=>x!=id)}else PH.s=PH.s.filter(p=>p.id!=id);delete IMG[id];idbDel(id);PH.f=PH.f.filter(x=>x!=id);if(PH.hero==id)PH.hero='';phSave();render();toast('Фото удалено')}
 function phCover(aid,id){const a=PH.a.find(x=>x.id==aid);if(!a)return;a.ph=[id,...a.ph.filter(x=>x!=id)];phSave();render()}
 function albAsk(id){const a=PH.a.find(x=>x.id==id);modal(`<h2>Удалить альбом?</h2><p>«${esc(a.name)}» и все его фото (${a.ph.length}) будут удалены.</p><button class="btn r" onclick="albDel('${id}')">Удалить</button>`)}
-function albDel(id){const a=PH.a.find(x=>x.id==id);if(!a)return;a.ph.forEach(p=>{delete IMG[p];idbDel(p)});PH.f=PH.f.filter(x=>!a.ph.includes(x));PH.a=PH.a.filter(x=>x.id!=id);phSave();closeM();render();toast('Альбом удалён')}
+function albDel(id){const a=PH.a.find(x=>x.id==id);if(!a)return;a.ph.forEach(p=>{delete IMG[p];idbDel(p)});PH.f=PH.f.filter(x=>!a.ph.includes(x));if(PH.hero&&a.ph.includes(PH.hero))PH.hero='';PH.a=PH.a.filter(x=>x.id!=id);phSave();closeM();render();toast('Альбом удалён')}
 const SB='position:absolute;min-height:0;width:26px;height:26px;padding:0;border-radius:50%;font-size:13px';
 function phFeat(id){const i=PH.f.indexOf(id);i<0?PH.f.push(id):PH.f.splice(i,1);phSave();render()}
+function phHero(id){PH.hero=PH.hero==id?'':id;phSave();render();toast(PH.hero?'Фото назначено главным на сайте':'Главное фото снято')}
 function phMove(i,d){const f=PH.f,j=i+d;if(j<0||j>=f.length)return;[f[i],f[j]]=[f[j],f[i]];phSave();render()}
 const IM=id=>IMG[id]?`<img src="${IMG[id]}" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;display:block">`:`<div style="aspect-ratio:1;background:var(--bd)"></div>`;
-function thumb(id,aid){const on=PH.f.includes(id);return `<div style="position:relative">${IM(id)}<button class="btn r" style="${SB};top:3px;right:3px" aria-label="Удалить фото" onclick="phDel(${aid?`'${aid}'`:'null'},'${id}')">✕</button>${aid?`<button class="btn" style="${SB};bottom:3px;left:3px" aria-label="Сделать обложкой" onclick="phCover('${aid}','${id}')">★</button>`:''}<button class="btn" style="${SB};bottom:3px;right:3px" aria-label="${on?'Убрать с главной':'Показать на главной'}" aria-pressed="${on}" onclick="phFeat('${id}')">${on?'♥':'♡'}</button></div>`}
+function thumb(id,aid){const on=PH.f.includes(id),h=PH.hero==id;return `<div style="position:relative">${IM(id)}<button class="btn r" style="${SB};top:3px;right:3px" aria-label="Удалить фото" onclick="phDel(${aid?`'${aid}'`:'null'},'${id}')">✕</button><button class="btn" style="${SB};top:3px;left:3px" aria-pressed="${h}" aria-label="${h?'Убрать главное фото':'Сделать главным фото'}" onclick="phHero('${id}')">${h?'❖':'◇'}</button>${aid?`<button class="btn" style="${SB};bottom:3px;left:3px" aria-label="Сделать обложкой" onclick="phCover('${aid}','${id}')">★</button>`:''}<button class="btn" style="${SB};bottom:3px;right:3px" aria-label="${on?'Убрать с главной':'Показать на главной'}" aria-pressed="${on}" onclick="phFeat('${id}')">${on?'♥':'♡'}</button></div>`}
 function featHTML(){return PH.f.length?`<div style="${GR}">${PH.f.map((id,i)=>`<div style="position:relative">${IM(id)}<button class="btn r" style="${SB};top:3px;right:3px" aria-label="Убрать с главной" onclick="phFeat('${id}')">✕</button><button class="btn" style="${SB};bottom:3px;left:3px" aria-label="Левее" onclick="phMove(${i},-1)">‹</button><button class="btn" style="${SB};bottom:3px;right:3px" aria-label="Правее" onclick="phMove(${i},1)">›</button></div>`).join('')}</div>`:'<p class="mut">Пока пусто. Отметьте фото сердечком ♡ в альбомах и разделах ниже.</p>'}
 const GR='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0';
 function phoHTML(){
  const d=st.pd||'ind';
  let h=`<div class="warn">${SRV?'Фото сжимаются до 1600 px и сохраняются на сервере: их видят все клиенты. Пока фото не загружены, на сайте показываются примерные плитки.':'Фото сжимаются до 1600 px и хранятся в этом браузере (макет). Пока фото не загружены, на сайте показываются примерные плитки.'}</div>
  <div class="card"><label>Куда загрузить<select onchange="st.pd=this.value;render()">${TL.filter(t=>t[0]!='wed').map(t=>`<option value="${t[0]}" ${d==t[0]?'selected':''}>${t[1]}</option>`).join('')}${PH.a.map(a=>`<option value="${a.id}" ${d==a.id?'selected':''}>Свадьбы → ${esc(a.name)}</option>`).join('')}<option value="new" ${d=='new'?'selected':''}>Свадьбы → новый альбом…</option></select></label>${d=='new'?`<label>Название нового альбома<input id="pnew" placeholder="Например: Анна и Михаил"></label>`:''}<label>Фотографии (можно выбрать несколько)<input type="file" accept="image/*" multiple onchange="phUp(this)"></label></div>
- <h2>Главная страница</h2><p class="mut">Эти фото клиенты видят первыми, в разделе «Избранное». Порядок меняют стрелки. Все остальные фото видны в разделах по темам.</p>${featHTML()}<h2>Свадебные альбомы</h2>`;
+ <h2>Главная страница</h2><p class="mut">Главное фото открывается первым на сайте — назначьте его кнопкой ◇ на любом фото ниже (повторное нажатие снимает выбор). Затем идут фото, отмеченные сердечком ♥, — клиенты видят их первыми на главной странице, без подписи. Порядок меняют стрелки. Остальные фото видны в разделах по темам.</p>${PH.hero&&IMG[PH.hero]?`<div class="mut" style="font-size:13px;margin-bottom:4px">Сейчас главное фото:</div><div style="width:110px">${IM(PH.hero)}</div>`:''}${featHTML()}<h2>Свадебные альбомы</h2>`;
  h+=PH.a.length?PH.a.map(a=>`<div class="card"><label>Название<input value="${esc(a.name)}" onchange="albSet('${a.id}','name',this.value)"></label><label>Подпись (тип съёмки)<input value="${esc(a.sub)}" onchange="albSet('${a.id}','sub',this.value)"></label><div class="mut">${a.ph.length} фото. Обложка — первое фото, звёздочка делает обложкой другое.</div><div style="${GR}">${a.ph.map(id=>thumb(id,a.id)).join('')}</div><button class="btn r" onclick="albAsk('${a.id}')">Удалить альбом</button></div>`).join(''):'<p class="mut">Альбомов пока нет: выберите «новый альбом» выше.</p>';
  TL.filter(t=>t[0]!='wed').forEach(t=>{const l=PH.s.filter(p=>p.cat==t[0]);h+=`<h2>${t[1]}</h2>`+(l.length?`<div style="${GR}">${l.map(p=>thumb(p.id,null)).join('')}</div>`:'<p class="mut">Фото пока нет.</p>')});
  return h
@@ -238,9 +242,11 @@ function galHTML(){
   return `<div style="grid-column:1/-1"><button class="btn s" onclick="openAlb(null)">← Все альбомы</button><h2 style="margin:14px 0 2px">${esc(a.n)}</h2><div class="mut">${a.s?esc(a.s)+' · ':''}${a.c} фото</div></div>`+tilesOf(VL);
  }
  if(hasReal()){
-  if(st.cat=='feat'){VL=PH.f.map(id=>({u:IMG[id]})).filter(p=>p.u);if(!VL.length)return '<p class="mut" style="grid-column:1/-1">На главной пока ничего не выбрано.</p>'}
+  // «Все»: избранные фото первыми (без подписи), за ними остальные; свадебные
+  // альбомы — в своём разделе. Так клиент видит лучшие фото, не встречая слова «Избранное».
+  if(st.cat=='all'){VL=[...PH.f,...PH.s.map(p=>p.id).filter(id=>!PH.f.includes(id))].map(id=>({u:IMG[id]})).filter(p=>p.u)}
   else VL=PH.s.filter(p=>p.cat==st.cat).map(p=>({u:IMG[p.id]})).filter(p=>p.u)}
- else VL=TL.flatMap((c,i)=>[0,1].map(j=>[c,(i*50+j*25)%360])).filter(x=>st.cat=='feat'||x[0][0]==st.cat).map(x=>({bg:phBg(24+x[1]/14,x[1]%5),t:x[0][1]}));
+ else VL=TL.flatMap((c,i)=>[0,1].map(j=>[c,(i*50+j*25)%360])).filter(x=>st.cat=='all'||x[0][0]==st.cat).map(x=>({bg:phBg(24+x[1]/14,x[1]%5),t:x[0][1]}));
  return VL.length?tilesOf(VL):EMPTY;
 }
 function openAlb(i){st.alb=i;$('#gal').innerHTML=galHTML();scrollTo({top:Math.max(0,$('#gal').offsetTop-70)})}

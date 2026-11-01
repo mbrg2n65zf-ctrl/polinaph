@@ -6,7 +6,8 @@ import { json, errJson, wrap, checkPassword, checkToken, makeToken, rateLimit, c
 const handle = wrap(async req => {
   if (req.method !== 'POST') return errJson(405, 'Метод не поддерживается');
   if (!process.env.ADMIN_PASSWORD) {
-    return errJson(500, 'ADMIN_PASSWORD не задан: Vercel → Settings → Environment Variables → добавить переменную, затем Redeploy');
+    // нейтральный текст: не раскрываем посетителю, где размещён сайт и что настраивать
+    return errJson(500, 'Вход временно недоступен: сервер не настроен (подробности в README, шаг 4)');
   }
   // уже вошедший с действующим токеном — просто подтверждаем
   if (checkToken(req)) return json({ ok: true, token: null });

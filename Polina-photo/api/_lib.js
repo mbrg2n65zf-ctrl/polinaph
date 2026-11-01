@@ -235,7 +235,7 @@ export function sanitizePub(pub) {
   const f = Array.isArray(pub.PH.f) ? pub.PH.f.slice(0, 200).filter(phId) : null;
   if (!s || !a || !f) return null;
 
-  return { svc, add, docs, PH: { s, a, f, q: Math.min(1e12, asInt(pub.PH.q) ?? 1) } };
+  return { svc, add, docs, PH: { s, a, f, hero: phId(pub.PH.hero) ? pub.PH.hero : '', q: Math.min(1e12, asInt(pub.PH.q) ?? 1) } };
 }
 
 export function sanitizeRef(ref) {
