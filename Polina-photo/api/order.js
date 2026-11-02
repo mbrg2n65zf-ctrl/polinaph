@@ -1,11 +1,12 @@
-// /api/order — работа с одной заявкой.
-// GET  ?id=&k=             — клиент читает свою заявку по номеру и секретному ключу k.
-// POST {action:'create'}   — клиент создаёт заявку (цены считает СЕРВЕР по каталогу,
-//                            клиент присылает только id тарифа и допуслуг — подменить нельзя).
+// /api/order — работа с одной записью (заявкой).
+// GET  ?id=&k=             — клиент читает свою запись по номеру и секретному ключу k.
+// POST {action:'create'}   — клиент записывается на анонс фото дня (цена и даты —
+//                            только серверные, из анонса; подменить нельзя).
 // POST {action:'pay'}      — тестовая оплата по id + k.
-// POST {action:'admin'}    — сохранение правок заявки (только токен фотографа).
-import { json, errJson, wrap, asStr, asInt, checkToken, readState, readOrders, mutateOrders,
-         sanitizeOrder, publicOrder, DN, S0, A0, defaultDocs, nowRu, verifyInitData, notify } from './_lib.js';
+// POST {action:'mine'}     — «мои записи» клиента по подписанному initData.
+// POST {action:'admin'}    — сохранение правок записи (только токен фотографа).
+import { json, errJson, wrap, asStr, asInt, asNum, checkToken, readState, readOrders, mutateOrders, rateLimit, clientIp,
+         sanitizeOrder, publicOrder, DN, CITIES, defaultDocs, nowRu, verifyInitData, notify } from './_lib.js';
 import { randomBytes } from 'node:crypto';
 
 const K_RE = /^[a-f0-9]{32}$/;
@@ -28,51 +29,52 @@ const handle = wrap(async req => {
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== 'object' || !body.action) return errJson(400, 'Некорректный запрос');
 
-  // ——— создание заявки клиентом ——————————————————————————————————————————————
+  // ——— создание записи клиентом ——————————————————————————————————————————————
+  // Клиент записывается на конкретный анонс фото дня: дату выбирает строго из
+  // заданных фотографом (ev.dates), цену считает СЕРВЕР из анонса — подменить нельзя.
   if (body.action === 'create') {
+    // приём записей открыт без пароля — ограничиваем частоту с одного IP (анти-спам);
+    // лимит щедрый: мобильные операторы прячут много клиентов за одним адресом
+    if (!rateLimit('order:' + clientIp(req), 120, 60 * 60 * 1000)) return errJson(429, 'Слишком много записей с одного адреса — попробуйте позже');
     const o = (body.order && typeof body.order === 'object') ? body.order : {};
     const name = asStr(o.name, 120), contact = asStr(o.contact, 200),
-          date = asStr(o.date, 40), time = asStr(o.time, 60),
-          city = asStr(o.city, 120), com = asStr(o.com, 2000);
-    if (!name || !contact || !date || !city) return errJson(400, 'Заполните обязательные поля заявки');
+          date = asStr(o.date, 40), time = asStr(o.time, 60), com = asStr(o.com, 2000);
+    if (!name || !contact) return errJson(400, 'Заполните имя и контакт');
+    if (o.accepted !== true) return errJson(400, 'Подтвердите согласие с документами');
 
-    // каталог берём из сохранённого состояния; если фотограф ещё не сохранял — встроенный резерв
+    // анонсы берём из сохранённого состояния
     const st = await readState();
-    const svcList = st && Array.isArray(st.svc) && st.svc.length ? st.svc : S0;
-    const addList = st && Array.isArray(st.add) ? st.add : A0;
+    const events = st && Array.isArray(st.ev) ? st.ev : [];
+    const ev = events.find(e => e && e.id === asInt(o.evId) && e.on !== false);
+    if (!ev) return errJson(400, 'Эта съёмка недоступна — обновите страницу и попробуйте снова');
+    const evDates = Array.isArray(ev.dates) ? ev.dates : [];
+    if (!evDates.includes(date)) return errJson(400, 'Выберите дату из предложенных — запись только на даты фото дня');
+
+    // версии юридических документов фиксируем на сервере в момент записи
     const docs = st && st.docs && typeof st.docs === 'object' ? st.docs : defaultDocs();
-
-    const svc = svcList.find(s => s && s.id === asInt(o.svcId) && s.on !== false);
-    if (!svc) return errJson(400, 'Выбранный тариф недоступен — обновите страницу и попробуйте снова');
-
-    const ad = (Array.isArray(o.adIds) ? o.adIds : []).map(asInt).filter(Boolean)
-      .map(id => addList.find(a => a && a.id === id && a.cat === svc.cat && a.on !== false))
-      .filter(Boolean)
-      .map(a => ({ name: a.name, price: a.price == null ? Math.round((svc.full * (a.pct || 0)) / 100) : a.price }));
-    const total = (svc.full || 0) + ad.reduce((s, x) => s + (x.price || 0), 0);
-    const first = svc.first == null ? null : svc.first;
-
-    // версии юридических документов фиксируем на сервере в момент заявки
     const acc = ['contract', 'privacy', 'consent'].map(k => {
       const list = Array.isArray(docs[k]) ? docs[k] : [];
       const last = list[list.length - 1];
       return { doc: DN[k], ver: last ? (asInt(last.v) ?? 1) : 1, at: nowRu(), how: 'чекбокс в приложении' };
     });
 
-    // атрибуция Telegram-пользователя (если заявка пришла из мини-приложения)
+    // атрибуция Telegram-пользователя (если запись пришла из мини-приложения)
     const user = verifyInitData(asStr(o.tg, 4096), process.env.TELEGRAM_BOT_TOKEN);
 
+    const total = Math.max(0, asNum(ev.price) ?? 0);
+    const first = ev.pre == null ? total : Math.max(0, asNum(ev.pre) ?? 0);
+    const city = CITIES[ev.city] || 'Москва';
     const orders = await readOrders();
     const id = orders.reduce((m, x) => Math.max(m, asInt(x && x.id) ?? 0), 0) + 1;
     const k = randomBytes(16).toString('hex');
     const order = {
       id, k,
-      svcId: svc.id, svc: asStr(svc.name, 120), cat: asStr(svc.cat, 20),
-      name, contact, date, time, city, com, ad,
+      evId: ev.id, svc: asStr(ev.t, 120), cat: asStr(ev.city, 10),
+      name, contact, date, time, city, com, ad: [],
       total, first, paid: 0,
       status: 'Ожидает оплаты', pay: 'Ожидает оплаты',
       note: '', cons: '', sum: '', alt: '', cdate: '',
-      log: [nowRu() + ' — Заявка создана; подтверждены документы (версии зафиксированы)' + (user ? '; заявка из Telegram' : '')],
+      log: [nowRu() + ' — Запись на «' + asStr(ev.t, 120) + '» (' + city + ', ' + date + '); документы подтверждены (версии зафиксированы)' + (user ? '; запись из Telegram' : '')],
       acc, user,
     };
 
@@ -82,15 +84,15 @@ const handle = wrap(async req => {
     });
 
     notify(
-      `📷 Новая заявка №${id} — ${order.svc}\n` +
-      `Дата: ${date}${time ? ' ' + time : ''}\n` +
-      `${name}, ${city}\nКонтакт: ${contact}\n` +
-      `Сумма: ${total} ₽${first != null ? `, первый платёж ${first} ₽` : ''}` +
+      `📷 Новая запись №${id} — ${order.svc}\n` +
+      `Город: ${city}\nДата: ${date}${time ? ' ' + time : ''}\n` +
+      `${name}\nКонтакт: ${contact}\n` +
+      `Сумма: ${total} ₽${first !== total ? `, предоплата ${first} ₽` : ''}` +
       (com ? `\nКомментарий: ${com}` : '') +
       (user ? `\nTelegram: ${user.name || ''} ${user.username ? '@' + user.username : ''}` : '')
     ).catch(() => {});
 
-    return json({ ok: true, order }); // order содержит k — клиент сохранит его для доступа к заявке
+    return json({ ok: true, order }); // order содержит k — клиент сохранит его для доступа к записи
   }
 
   // ——— «мои заявки» клиента: привязка к Telegram-аккаунту ————————————————————————————
@@ -98,6 +100,7 @@ const handle = wrap(async req => {
   // подпись, сервер уверен, что перед ним владелец аккаунта, и отдаёт только его
   // заявки — с любого устройства. Без валидной подписи список не выдаётся.
   if (body.action === 'mine') {
+    if (!rateLimit('mine:' + clientIp(req), 120, 60 * 60 * 1000)) return errJson(429, 'Слишком много запросов — попробуйте позже');
     const user = verifyInitData(asStr(body.tg, 4096), process.env.TELEGRAM_BOT_TOKEN);
     if (!user || !user.id) return errJson(401, 'Не удалось подтвердить Telegram-аккаунт');
     const list = (await readOrders()).filter(o => o && o.user && o.user.id === user.id);

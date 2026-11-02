@@ -121,8 +121,9 @@ export const mutateOrders = async mutate => {
   throw lastErr || new Error('orders write failed');
 };
 
-// ——— константы каталога: резерв, если фотограф ещё ни разу не сохранял каталог.
-//     ДОЛЖНЫ совпадать с S0 / A0 / DN / STUB в index.html — править синхронно! ———
+// ——— константы: города фото дней, юридические документы ————————————————————
+//     ДОЛЖНЫ совпадать с CITIES / DN / STUB в index.html — править синхронно! ———
+export const CITIES = { msk: 'Москва', gel: 'Геленджик' };
 export const DN = {
   contract: 'Договор оказания услуг',
   privacy: 'Политика обработки персональных данных',
@@ -130,35 +131,14 @@ export const DN = {
   terms: 'Пользовательское соглашение',
 };
 export const STUB = 'Текст предоставляет владелец проекта после проверки юристом. Здесь намеренно нет придуманных юридических условий.';
-export const S0 = [
-  ['ind', 'Мини', 'До 1 часа · до 25 фото · консультация и подбор локации', '2–3 недели', 20000, 5000],
-  ['ind', 'Макси', 'До 2 часов · до 50 фото · консультация и подбор локации', '2–3 недели', 30000, 7000],
-  ['ind', 'Съёмка ко дню рождения', 'До 1 часа · до 30 фото · видео в подарок', '3–5 дней', 20000, 5000],
-  ['rep', 'Репортаж — 1 час', 'До 60 обработанных кадров за час', 'до 3 недель', 15000, null],
-  ['rep', 'Репортаж — 4 часа', '4 часа', '—', 43000, null],
-  ['rep', 'Репортаж — 6 часов', '6 часов', '—', 65000, null],
-  ['rep', 'Репортаж — 8–10 часов', 'От 8 до 10 часов', '—', 75000, null],
-  ['wed', 'ЗАГС и прогулка', 'До 1,5 часа · до 70 фото · консультация и подбор локаций', '4–5 недель', 27000, 7000],
-  ['wed', 'Камерная свадьба', 'До 3 часов · до 150 фото · консультация и подбор локаций', '4–5 недель', 40000, 12000],
-  ['wed', 'Полдня', 'До 6 часов · до 300 фото · консультация и подбор локаций', '4–5 недель', 60000, 18000],
-  ['wed', 'Свадебный день', 'До 10 часов · до 500 фото · консультация и подбор локаций', '4–5 недель', 90000, 25000],
-].map((a, i) => ({ id: i + 1, cat: a[0], name: a[1], desc: a[2], del: a[3], full: a[4], first: a[5], on: true }));
-export const A0 = [
-  ['ind', 'Дополнительный час', 15000],
-  ['ind', 'Мини-видео', 8000],
-  ['ind', 'Фотокнига', 10000],
-  ['ind', 'Ускоренная отдача фотографий', 4000],
-  ['wed', 'Дополнительный час', 12000],
-  ['wed', 'Срочная обработка (+10% к пакету)', null],
-  ['wed', 'Мини-видео', 12000],
-  ['wed', 'Фотокнига', 10000],
-].map((a, i) => ({ id: i + 1, cat: a[0], name: a[1], price: a[2], pct: a[2] == null ? 10 : 0, on: true }));
 export const defaultDocs = () =>
   Object.fromEntries(Object.keys(DN).map(k => [k, [{ v: 1, d: nowRu(), t: STUB }]]));
 
 // ——— валидация путей файлов (защита от path traversal) ——————————————————————
-// Клиент создаёт только: photos/p<число>.jpg и docs/d<число>.<разрешённое расширение>
-export const PATH_RE = /^(photos|docs)\/[a-z0-9_-]{1,64}\.(jpg|pdf|doc|docx|odt|rtf|txt)$/i;
+// Клиент создаёт только: photos/p<число>.jpg, videos/v<число>.<видео-расширение>
+// и docs/d<число>.<разрешённое расширение>. Внутри каждой папки — свой набор
+// расширений, кросс-подмена отсекается проверками типа содержимого при загрузке.
+export const PATH_RE = /^(photos|docs|videos)\/[a-z0-9_-]{1,64}\.(jpg|pdf|doc|docx|odt|rtf|txt|mp4|webm|mov)$/i;
 export const validPath = p => typeof p === 'string' && p.length <= 100 && PATH_RE.test(p);
 
 const CONTENT_TYPES = {
@@ -169,36 +149,34 @@ const CONTENT_TYPES = {
   odt: 'application/vnd.oasis.opendocument.text',
   rtf: 'application/rtf',
   txt: 'text/plain; charset=utf-8',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
 };
 export const ctypeOf = p => CONTENT_TYPES[String(p).split('.').pop().toLowerCase()] || 'application/octet-stream';
 export const isPhotoPath = p => /^photos\//i.test(p);
+export const isVideoPath = p => /^videos\//i.test(p);
 
-// ——— санитизация каталога/документов/фото, которые присылает админка —————————
-// Возвращает объект {svc, add, docs, PH} или null, если структура непригодна.
+// ——— санитизация анонсов/документов/фото, которые присылает админка ——————————
+// Возвращает объект {ev, docs, PH} или null, если структура непригодна.
 export function sanitizePub(pub) {
   if (!pub || typeof pub !== 'object') return null;
-  if (!Array.isArray(pub.svc) || !Array.isArray(pub.add)) return null;
+  if (!Array.isArray(pub.ev)) return null;
   if (!pub.docs || typeof pub.docs !== 'object' || !pub.PH || typeof pub.PH !== 'object') return null;
 
-  const svc = pub.svc.slice(0, 100).map(s => ({
-    id: asInt(s && s.id) ?? 0,
-    cat: asStr(s && s.cat, 20),
-    name: asStr(s && s.name, 120),
-    desc: asStr(s && s.desc, 600),
-    del: asStr(s && s.del, 60),
-    full: Math.max(0, asNum(s && s.full) ?? 0),
-    first: s && s.first == null ? null : Math.max(0, asNum(s.first) ?? 0),
-    on: !!(s && s.on),
-  })).filter(s => s.id > 0);
-
-  const add = pub.add.slice(0, 100).map(a => ({
-    id: asInt(a && a.id) ?? 0,
-    cat: asStr(a && a.cat, 20),
-    name: asStr(a && a.name, 120),
-    price: a && a.price == null ? null : Math.max(0, asNum(a.price) ?? 0),
-    pct: Math.min(100, Math.max(0, asNum(a && a.pct) ?? 0)),
-    on: !(a && a.on === false),
-  })).filter(a => a.id > 0);
+  // Анонсы фото дней: город строго из списка, даты задаёт фотограф —
+  // клиент сможет выбрать запись только на эти даты (проверяется в order.js).
+  const ev = pub.ev.slice(0, 100).map(e => ({
+    id: asInt(e && e.id) ?? 0,
+    city: e && e.city === 'gel' ? 'gel' : 'msk',
+    t: asStr(e && e.t, 120),
+    d: asStr(e && e.d, 1200),
+    dates: (Array.isArray(e && e.dates) ? e.dates : []).slice(0, 30).map(x => asStr(x, 40)).filter(Boolean),
+    price: Math.max(0, asNum(e && e.price) ?? 0),
+    old: e && e.old == null ? null : Math.max(0, asNum(e.old) ?? 0),
+    pre: (() => { const n = asNum(e && e.pre); return n != null && n > 0 ? n : null; })(),
+    on: !!(e && e.on),
+  })).filter(e => e.id > 0);
 
   const docs = {};
   for (const k of Object.keys(DN)) {
@@ -218,24 +196,20 @@ export function sanitizePub(pub) {
     }));
   }
 
-  // идентификаторы фото/альбомов генерирует фронтенд как p<число> / a<число> —
+  // идентификаторы фото/видео генерирует фронтенд как p<число> / v<число> —
   // жёсткий шаблон не даёт подсунуть в PH произвольные строки
   const phId = v => typeof v === 'string' && /^p\d{1,12}$/.test(v);
-  const albId = v => typeof v === 'string' && /^a\d{1,12}$/.test(v);
   const s = Array.isArray(pub.PH.s) ? pub.PH.s.slice(0, 2000).map(p => ({
     id: phId(p && p.id) ? p.id : null,
-    cat: asStr(p && p.cat, 20),
+    city: p && p.city === 'gel' ? 'gel' : 'msk',
   })).filter(p => p.id) : null;
-  const a = Array.isArray(pub.PH.a) ? pub.PH.a.slice(0, 200).map(al => ({
-    id: albId(al && al.id) ? al.id : null,
-    name: asStr(al && al.name, 120),
-    sub: asStr(al && al.sub, 200),
-    ph: Array.isArray(al && al.ph) ? al.ph.slice(0, 500).filter(phId) : [],
-  })).filter(al => al.id) : null;
-  const f = Array.isArray(pub.PH.f) ? pub.PH.f.slice(0, 200).filter(phId) : null;
-  if (!s || !a || !f) return null;
+  if (!s) return null;
+  const video = pub.PH.video && typeof pub.PH.video === 'object' &&
+    /^v\d{1,12}$/.test(String(pub.PH.video.id || '')) &&
+    ['mp4', 'webm', 'mov'].includes(pub.PH.video.ext)
+    ? { id: pub.PH.video.id, ext: pub.PH.video.ext } : null;
 
-  return { svc, add, docs, PH: { s, a, f, hero: phId(pub.PH.hero) ? pub.PH.hero : '', q: Math.min(1e12, asInt(pub.PH.q) ?? 1) } };
+  return { ev, docs, PH: { s, hero: phId(pub.PH.hero) ? pub.PH.hero : '', video, q: Math.min(1e12, asInt(pub.PH.q) ?? 1) } };
 }
 
 export function sanitizeRef(ref) {
@@ -256,7 +230,7 @@ export function sanitizeOrder(o, id, k) {
   return {
     id,
     k,
-    svcId: asInt(o && o.svcId) ?? 0,
+    evId: asInt(o && o.evId) ?? asInt(o && o.svcId) ?? 0,
     svc: asStr(o && o.svc, 120),
     cat: asStr(o && o.cat, 20),
     name: asStr(o && o.name, 120),
