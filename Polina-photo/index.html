@@ -214,7 +214,7 @@ const shrink=f=>new Promise((res,rej)=>{const u=URL.createObjectURL(f),im=new Im
 const vidSrc=()=>{const v=PH.video;if(!v||!v.id)return '';if(SRV)return '/api/file?p='+encodeURIComponent('videos/'+v.id+'.'+(v.ext||'mp4'));return VID[v.id]||''};
 function heroHTML(){
  const src=vidSrc();
- if(src)return `<div class="hero"><video src="${src}" autoplay muted loop playsinline${PH.hero&&IMG[PH.hero]?` poster="${IMG[PH.hero]}"`:''} onerror="this.style.display='none'"></video><div class="hi">Кадры с фото дней</div></div>`;
+ if(src)return `<div class="hero"><video src="${src}" autoplay muted loop playsinline${PH.hero&&IMG[PH.hero]?` poster="${IMG[PH.hero]}"`:''} onerror="this.style.display='none'"></video></div>`;
  if(PH.hero&&IMG[PH.hero])return `<div class="hero"><img src="${IMG[PH.hero]}" alt="Главное фото"><div class="hi">Полина Кушнаренко · фотограф</div></div>`;
  return `<div class="hero"><div class="hi" style="position:absolute;left:0;right:0;top:auto;bottom:0">Здесь будет видео или главное фото</div></div>`}
 // ——— города: переключение чипсами и свайпом по списку анонсов —————————————————
