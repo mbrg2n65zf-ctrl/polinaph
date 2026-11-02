@@ -19,7 +19,6 @@ main{padding:12px}h1{font:600 26px Georgia,serif;margin:4px 0}h2{font:600 18px G
 .btn{background:var(--ac);color:var(--on);border:0;border-radius:10px;padding:10px 14px;font:inherit;cursor:pointer;margin:2px 4px 2px 0}
 .btn.s{background:transparent;color:var(--ac);border:1px solid var(--ac)}.btn.r{background:#b33}
 .warn{border-left:4px solid var(--wn);background:var(--card);padding:8px 10px;border-radius:8px;font-size:13px;margin:8px 0}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tile{aspect-ratio:3/4;border-radius:12px;display:flex;align-items:flex-end;padding:8px;color:#fff;font-size:12px;cursor:pointer}
 input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit;margin:3px 0 8px}
 input[type=checkbox]{width:auto;margin:3px 8px 0 0}label{font-size:13px;display:block}.ck{display:flex;align-items:flex-start;margin:6px 0}
 .tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;background:var(--bd)}.tag.t{background:var(--wn);color:var(--on)}.tag.g{background:var(--ok);color:var(--on)}
@@ -42,23 +41,18 @@ nav button.on{background:none;color:var(--fg);border-bottom-color:var(--wine)}
 .card b,.card.row span b{font:500 25px "Cormorant Garamond",Georgia,serif}
 .btn{border-radius:0;padding:13px 24px;letter-spacing:.02em;margin:2px 8px 2px 0}
 .btn.s{border-color:var(--fg);color:var(--fg)}
-.grid{align-items:start;gap:10px}
-.tile{border-radius:0;aspect-ratio:4/5;color:rgba(0,0,0,.5)}
-.tile:nth-child(4n+1){aspect-ratio:3/4}.tile:nth-child(4n+2),.tile:nth-child(4n+3){aspect-ratio:1}
 input,select,textarea{border-radius:0;background:#fff}
 .warn{border-left-color:var(--wine);background:#faf8f5;border-radius:0}
 .tag{border-radius:0}.tag.t{background:var(--wine);color:#fff}
 #modal>div,#modal2>div{border-radius:0}
 #modal{z-index:26}#modal2{z-index:27}
-#vw{position:fixed;inset:0;background:var(--bg);color:var(--fg);z-index:60;overflow-y:auto;-webkit-overflow-scrolling:touch;max-width:560px;margin:0 auto}
-.vh{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top,0px)) 8px 8px;background:var(--bg);border-bottom:1px solid var(--bd)}
+#vw{position:fixed;inset:0;background:var(--bg);color:var(--fg);z-index:60;max-width:560px;margin:0 auto;display:none;flex-direction:column}
+.vh{flex:none;display:flex;align-items:center;gap:10px;padding:calc(8px + env(safe-area-inset-top,0px)) 8px 8px;background:var(--bg);border-bottom:1px solid var(--bd)}
 .vbk{width:44px;height:44px;border:0;background:none;color:var(--fg);font-size:24px;cursor:pointer}
-.vp{scroll-margin-top:60px;margin-bottom:22px}.vp img,.vp .ph{display:block;width:100%}.vp .ph{aspect-ratio:4/5}
-.vcap{padding:8px 16px 0;font-size:13px;color:var(--mut)}
-.grid{margin-left:-20px;margin-right:-20px}
-.grid .tile{aspect-ratio:var(--ar,1)!important;overflow:hidden;width:100%}
-.grid .tile img{width:100%;height:100%;object-fit:cover;display:block}
-.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:2px}.grid .tile{font-size:10px}
+#vfeed{flex:1;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}#vfeed::-webkit-scrollbar{display:none}
+.vp{flex:0 0 100%;scroll-snap-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:0}
+.vp img{max-width:100%;max-height:calc(100% - 52px);object-fit:contain;display:block}
+.vcap{padding:10px 16px 14px;font-size:13px;color:var(--mut);text-align:center}
 h1{font-size:clamp(27px,10.5vw,40px);overflow-wrap:break-word}
 a.btn{text-decoration:none}
 .err{color:#b3261e;font-size:14px;min-height:20px;margin:2px 0}
@@ -83,12 +77,14 @@ h2{font-size:22px;font-weight:600;margin:30px 0 8px}
 .rt:focus{outline:2px solid var(--bd);outline-offset:-1px}
 .rt p,.evd p{margin:.3em 0}.rt ul,.rt ol,.evd ul,.evd ol{margin:.3em 0;padding-left:1.4em}
 .rt a{color:var(--ac)}.evd a{color:inherit}
-.evsplit{display:grid;grid-template-columns:minmax(0,1fr) 118px;gap:12px;align-items:start;margin:2px 0 6px}
-.evsplit .evd{margin:0}
-.evimg{border-radius:10px;overflow:hidden;background:var(--bd);cursor:zoom-in}
-.evimg img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover}
-.evimg:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
-@media(max-width:370px){.evsplit{grid-template-columns:minmax(0,1fr) 96px;gap:10px}}
+.evgal{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin:10px 0 2px;scrollbar-width:none}.evgal::-webkit-scrollbar{display:none}
+.evgal .sl{flex:0 0 100%;min-width:0;scroll-snap-align:center;cursor:zoom-in;background:var(--bd);border-radius:10px;overflow:hidden;aspect-ratio:4/5;max-height:min(560px,72vh)}
+.evgal .sl img{display:block;width:100%;height:100%;object-fit:cover}
+.evgal .sl:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+.evdots{display:flex;gap:5px;justify-content:center;margin:8px 0 0}
+.evdots i{width:6px;height:6px;border-radius:50%;background:var(--bd);transition:background .15s}
+.evdots i.on{background:var(--fg)}
+@media(max-width:370px){.evgal .sl{max-height:min(480px,68vh)}}
 </style><meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -116,7 +112,7 @@ const E0=[
  {id:3,city:'gel',t:'Фото день у моря',d:'30 минут на набережной · 20 кадров · рассветный свет',dates:['05.12.2026','06.12.2026','07.12.2026'],price:3900,old:5900,pre:1000,on:true},
 ];
 let D=(()=>{try{return JSON.parse(localStorage.getItem('pk2'))}catch(e){return null}})()||{ev:E0,ord:[],ref:[],set:{def:''},docs:Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]])),seq:1};
-(()=>{if(!D||typeof D!='object')D={};if(!Array.isArray(D.ev))D.ev=E0.map(x=>({...x}));if(!Array.isArray(D.ord))D.ord=[];if(!Array.isArray(D.ref))D.ref=[];D.seq=+D.seq||1;if(!D.set||typeof D.set!='object')D.set={};D.set.def=CITIES[D.set.def]?D.set.def:'';const dd={};for(const k of Object.keys(DN))dd[k]=Array.isArray(D.docs&&D.docs[k])?D.docs[k]:[{v:1,d:now(),t:STUB}];D.docs=dd})();
+(()=>{if(!D||typeof D!='object')D={};if(!Array.isArray(D.ev))D.ev=E0.map(x=>({...x}));for(const x of D.ev)if(x&&typeof x=='object'&&!Array.isArray(x.photos))x.photos=x.img?[x.img]:[];if(!Array.isArray(D.ord))D.ord=[];if(!Array.isArray(D.ref))D.ref=[];D.seq=+D.seq||1;if(!D.set||typeof D.set!='object')D.set={};D.set.def=CITIES[D.set.def]?D.set.def:'';const dd={};for(const k of Object.keys(DN))dd[k]=Array.isArray(D.docs&&D.docs[k])?D.docs[k]:[{v:1,d:now(),t:STUB}];D.docs=dd})();
 // Вход в админку (экран пароля фотографа): путь /admin, ссылка Telegram с ?startapp=admin
 // (Telegram передаёт параметр и как start_param, и как tgWebAppStartParam в URL мини-приложения),
 // либо ?admin / #admin в адресе сайта. В демо-режиме (file:) #admin лишь показывает
@@ -126,7 +122,7 @@ const ADM_OK=/admin/.test(location.hash+location.search)||TGSP=='admin';
 const ADMIN_PAGE=/^\/admin\/?$/.test(location.pathname)||TGSP=='admin'||/[?&]tgWebAppStartParam=admin(&|$)/.test(location.search)||(location.protocol!='file:'&&/admin/.test(location.hash+location.search)),TGDATA=()=>{try{return Telegram.WebApp.initData||''}catch(e){return ''}};
 let BOOT=location.protocol=='file:'?'':'load',BOOTERR='',SUBM=false;
 try{document.execCommand('defaultParagraphSeparator',false,'p')}catch(e){} // Enter в редакторе описания делает абзац
-let st={tab:ADMIN_PAGE?'adm':'port',city:(()=>{if(D.set&&CITIES[D.set.def])return D.set.def;try{return localStorage.getItem('pk_city')=='gel'?'gel':'msk'}catch(e){return 'msk'}})(),bdate:null,pcity:'msk',ev:null,adm:false,at:'ord',ucity:false};
+let st={tab:ADMIN_PAGE?'adm':'port',city:(()=>{if(D.set&&CITIES[D.set.def])return D.set.def;try{return localStorage.getItem('pk_city')=='gel'?'gel':'msk'}catch(e){return 'msk'}})(),bdate:null,ev:null,adm:false,at:'ord',ucity:false};
 let SRV=false,PERR='',TOKEN=(()=>{try{const t=localStorage.getItem('pk_tok')||'';return +t.split('.')[0]>Date.now()?t:''}catch(e){return ''}})();
 const MYK='pk_my',myList=()=>{try{return JSON.parse(localStorage.getItem(MYK))||[]}catch(e){return[]}};
 const fileUrl=p=>'/api/file?p='+encodeURIComponent(p);
@@ -143,8 +139,8 @@ async function api(path,o={}){
  return d}
 function applyState(p){
  D.ev=Array.isArray(p.ev)?p.ev:[];
- // фото анонсов лежат в той же папке photos/pN.jpg, что и фотографии стенки
- for(const x of D.ev)if(x&&x.img)IMG[x.img]=fileUrl('photos/'+x.img+'.jpg');
+ // фото анонсов лежат в той же папке photos/pN.jpg, что и главное фото первого экрана
+ for(const x of D.ev){if(!x||typeof x!='object')continue;if(!Array.isArray(x.photos)||!x.photos.length)x.photos=x.img?[x.img]:[];for(const p of x.photos)if(p)IMG[p]=fileUrl('photos/'+p+'.jpg')}
  if(p.docs&&typeof p.docs=='object')D.docs=p.docs;
  D.set=p.set&&typeof p.set=='object'?{def:CITIES[p.set.def]?p.set.def:''}:{def:''};
  // выбранный посетителем город не перекидываем, заданный фотографом — применяем
@@ -223,20 +219,23 @@ function heroHTML(){
  return `<div class="hero"><div class="hi" style="position:absolute;left:0;right:0;top:auto;bottom:0">Здесь будет видео или главное фото</div></div>`}
 // ——— города: переключение чипсами и свайпом по списку анонсов —————————————————
 function setCity(c){if(c!=st.city){st.city=c;st.ucity=true;st.bdate=null;try{localStorage.setItem('pk_city',c)}catch(e){}render()}}
-let swX=0,swY=0,swT=0;
+let swX=0,swY=0,swT=0,swGal=false;
 const ptX=e=>e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientX:e.clientX,ptY=e=>e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientY:e.clientY;
-function swS(e){swX=ptX(e);swY=ptY(e);swT=Date.now()}
-function swE(e){const dx=ptX(e)-swX,dy=ptY(e)-swY;if(Date.now()-swT>900||Math.abs(dx)<50||Math.abs(dx)<1.5*Math.abs(dy))return;
+function swS(e){swX=ptX(e);swY=ptY(e);swT=Date.now();swGal=!!(e.target&&e.target.closest&&e.target.closest('.evgal'))}
+function swE(e){if(swGal){swGal=false;return}const dx=ptX(e)-swX,dy=ptY(e)-swY;if(Date.now()-swT>900||Math.abs(dx)<50||Math.abs(dx)<1.5*Math.abs(dy))return;
  const next=dx<0?(st.city=='msk'?'gel':'msk'):(st.city=='gel'?'msk':'msk');setCity(next)}
-// ——— анонсы и стена фотографий ————————————————————————————————————————————————
-// Описание анонса на сайте: слева текст, справа фото (если фотограф его добавил).
-// Картинка открывается крупно по клику. Без фото — просто текст, как раньше.
-const evSplit=e=>{const u=e.img&&IMG[e.img];if(!e.d&&!u)return '';
- return `<div class="evsplit"><div class="evd mut">${e.d?rtOut(e.d):''}</div>${u?`<div class="evimg" role="button" tabindex="0" title="Открыть фото" aria-label="Открыть фото к анонсу" onclick="evZoom('${e.img}')" onkeydown="if(event.key=='Enter')evZoom('${e.img}')"><img src="${u}" alt="Фото к анонсу" loading="lazy"></div>`:''}</div>`};
-function evZoom(id){const u=IMG[id];if(!u)return;modal(`<img src="${u}" alt="Фото к анонсу" style="width:100%;border-radius:10px">`,'modal2')}
+// ——— анонсы: фото в ряд слайдами, по клику — на весь экран ———————————————————
+// Порядок в карточке: название → фотографии (карусель) → описание (на всю ширину).
+// Свайп внутри карусели не переключает город: swS запоминает, что жест начат на фото.
+const evPhotos=e=>{const a=Array.isArray(e&&e.photos)&&e.photos.length?e.photos:(e&&e.img?[e.img]:[]);return a.filter(p=>p&&IMG[p])};
+function evGal(e){
+ const ps=evPhotos(e);if(!ps.length)return '';
+ return `<div class="evgal" id="eg${e.id}" onscroll="evGalSc(${e.id},this)" aria-label="Фотографии анонса">${ps.map((p,i)=>`<div class="sl" role="button" tabindex="0" aria-label="Фото ${i+1} из ${ps.length}, открыть на весь экран" onclick="evOpen(${e.id},${i})" onkeydown="if(event.key=='Enter')evOpen(${e.id},${i})"><img src="${IMG[p]}" alt="Фото к анонсу ${i+1}" loading="lazy"></div>`).join('')}</div>${ps.length>1?`<div class="evdots" id="gd${e.id}">${ps.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>`:''}`}
+function evGalSc(id,el){const d=$('#gd'+id);if(!d||!el.clientWidth)return;const k=Math.max(0,Math.min(d.children.length-1,Math.round(el.scrollLeft/(el.clientWidth+8))));[...d.children].forEach((c,j)=>c.classList.toggle('on',j===k))}
+function evOpen(id,i){const e=D.ev.find(x=>x&&x.id==id);if(!e)return;const ps=evPhotos(e);if(!ps.length)return;vwOpen(ps.map(p=>IMG[p]),i,'Фото · '+(CITIES[e.city]||e.city))}
 function evCard(e){
  const disc=e.old&&e.old>e.price?Math.round((1-e.price/e.old)*100):0,pre=e.pre!=null&&e.pre<e.price;
- return `<div class="card"><b>${esc(e.t)}</b>${evSplit(e)}
+ return `<div class="card"><b>${esc(e.t)}</b>${evGal(e)}${e.d?`<div class="evd mut" style="margin-top:6px">${rtOut(e.d)}</div>`:''}
  ${e.dates.length?`<div class="dates">${e.dates.map(d=>`<span>${esc(d)}</span>`).join('')}</div>`:'<div class="mut">даты уточняются</div>'}
  <div class="row" style="margin-top:10px;align-items:flex-end"><span><span class="pr">${rub(e.price)}</span>${disc?` <s class="mut">${rub(e.old)}</s> <span class="tag t">−${disc}%</span>`:''}<br><span class="mut">${pre?'предоплата сейчас: '+rub(e.pre):'оплата при записи'}</span></span>
  <button class="btn" onclick="openBook(${e.id})">Записаться</button></div></div>`}
@@ -250,7 +249,7 @@ function book(){
  const e=D.ev.find(x=>x&&x.id==st.ev);if(!e)return `<h1 style="margin-top:20px">Запись</h1><p class="mut">Анонс недоступен.</p><button class="btn s" onclick="go('port')">← На главную</button>`;
  const disc=e.old&&e.old>e.price?Math.round((1-e.price/e.old)*100):0,pre=e.pre!=null&&e.pre<e.price;
  return `<button class="btn s" style="margin:14px 0 0" onclick="go('port')">← К анонсам</button><h1 style="margin-top:10px">${esc(e.t)}</h1>
- <p class="mut" style="margin-bottom:${(e.d||e.img)?'2px':'0'}">${esc(CITIES[e.city]||e.city)}</p><div style="margin:0 0 8px">${evSplit(e)}</div>
+ <p class="mut">${esc(CITIES[e.city]||e.city)}</p>${evGal(e)}${e.d?`<div class="evd mut" style="margin:6px 0 8px">${rtOut(e.d)}</div>`:''}
  <div class="card"><b>Дата фото дня</b><div class="mut" style="margin-top:2px">Запись только на даты, которые задал фотограф.</div>
  <div class="chips" id="bdw" style="margin:8px -20px 0">${e.dates.map(d=>`<button type="button" class="chip ${st.bdate==d?'on':''}" data-d="${esc(d)}" aria-pressed="${st.bdate==d}" onclick="setBD(this.dataset.d)">${esc(d)}</button>`).join('')}</div>
  <div class="mut" id="bdh">${st.bdate?'Выбрана дата: '+esc(st.bdate):(e.dates.length?'Выберите дату из списка':'Даты уточняются — пока запись недоступна')}</div></div>
@@ -306,9 +305,9 @@ function thumb(id){const h=PH.hero==id;return `<div style="position:relative">${
 function phDel(id){PH.s=PH.s.filter(p=>p.id!=id);delete IMG[id];idbDel(id);if(PH.hero==id)PH.hero='';phSave();render();toast('Фото удалено')}
 function phHero(id){PH.hero=PH.hero==id?'':id;phSave();render();toast(PH.hero?'Фото назначено на первый экран':'Главное фото снято')}
 async function phUp(inp){
- const dest=st.pcity||'msk',files=[...inp.files].filter(f=>f.type.startsWith('image/'));if(!files.length)return;
+ const files=[...inp.files].filter(f=>f.type.startsWith('image/'));if(!files.length)return;
  let n=0;
- for(const f of files){try{const id='p'+PH.q++,u=await storeImg(id,f);IMG[id]=u;PH.s.push({id,city:dest});n++;toast('Загружено '+n+' из '+files.length)}catch(e){PERR=(e&&e.message)||''}}
+ for(const f of files){try{const id='p'+PH.q++,u=await storeImg(id,f);IMG[id]=u;PH.s.push({id});n++;toast('Загружено '+n+' из '+files.length)}catch(e){PERR=(e&&e.message)||''}}
  if(n){phSave();render()}
  toast(n?'Загружено фото: '+n+(SRV?' (сохраняю…)':''):'Не удалось загрузить: '+(PERR||'файл не подошёл'))}
 async function vidUp(inp){
@@ -322,39 +321,31 @@ async function vidUp(inp){
  PH.video={id,ext};phSave();render();toast(SRV?'Видео загружено, сохраняю…':'Видео загружено (макет)')}
 function vidDel(){const v=PH.video;if(v&&v.id&&VID[v.id]){try{URL.revokeObjectURL(VID[v.id])}catch(e){}delete VID[v.id]}PH.video=null;phSave();render();toast('Видео убрано с первого экрана')}
 function phoHTML(){
- let h=`<div class="warn">${SRV?'Фото сжимаются до 1600 px и сохраняются на сервере: их видят клиенты. Пока фото не загружены, стены на сайте пустые.':'Фото сжимаются до 1600 px и хранятся в этом браузере (макет).'}</div>
- <h2>Первый экран</h2><p class="mut">Видео — короткий ролик без звука (MP4 или WebM, до 3,5 МБ): играет на фоне первого экрана и зацикливается. Если видео нет, показывается главное фото — назначьте его кнопкой ◇ на любом фото ниже.</p>
+ let h=`<div class="warn">${SRV?'Этот раздел — только для первого экрана сайта: видео-фон и главное фото. Фотографии самих анонсов загружаются в карточке анонса на вкладке «Анонсы».':'Фото сжимаются до 1600 px и хранятся в этом браузере (макет).'}</div>
+ <h2>Видео на первом экране</h2><p class="mut">Короткий ролик без звука (MP4 или WebM, до 3,5 МБ): играет на фоне первого экрана и зацикливается. Если видео нет, показывается главное фото — назначьте его кнопкой ◇ на любом кадре ниже.</p>
  ${PH.video&&PH.video.id?`<div class="card row"><span>Видео на первом экране (${esc(PH.video.ext)})</span><button class="btn r" onclick="vidDel()">Убрать видео</button></div>`:'<div class="card"><label>Видео для первого экрана<input type="file" accept="video/mp4,video/webm" onchange="vidUp(this)"></label></div>'}
  ${PH.hero&&IMG[PH.hero]?`<div class="mut" style="font-size:13px;margin-bottom:4px">Сейчас главное фото (кадр-заставка для видео):</div><div style="width:110px;margin-bottom:6px">${IM(PH.hero)}</div>`:'<p class="mut">Главное фото не назначено.</p>'}
- <h2>Фотографии по городам</h2>
- <div class="card"><label>Город для загрузки<select id="pcity" onchange="st.pcity=this.value"><option value="msk" ${st.pcity=='msk'?'selected':''}>Москва</option><option value="gel" ${st.pcity=='gel'?'selected':''}>Геленджик</option></select></label><label>Фотографии (можно выбрать несколько)<input type="file" accept="image/*" multiple onchange="phUp(this)"></label></div>`;
- for(const c of ['msk','gel']){const l=PH.s.filter(p=>p.city==c);h+=`<h2>${CITIES[c]}</h2>`+(l.length?`<div style="${GR}">${l.map(p=>thumb(p.id)).join('')}</div>`:'<p class="mut">Фото пока нет.</p>')}
+ <h2>Кадры для главного фото</h2>
+ <div class="card"><label>Фотографии (можно выбрать несколько; главное фото назначается кнопкой ◇)<input type="file" accept="image/*" multiple onchange="phUp(this)"></label></div>`;
+ h+=PH.s.length?`<div style="${GR}">${PH.s.map(p=>thumb(p.id)).join('')}</div>`:'<p class="mut">Кадров пока нет — загрузите хотя бы один, чтобы было чем закрыть первый экран.</p>';
  return h}
 // ——— публичная главная страница ————————————————————————————————————————————————
 let VL=[],VI=0;
-const phBg=(h,i)=>`linear-gradient(160deg,hsl(${h},22%,${89-(i%5)*3}%),hsl(${h},18%,${78-(i%4)*3}%))`;
-const DEMOW=['Утренний свет','Прогулка','Портрет','Фото день','Город','Закат'];
-function tilesOf(l){return l.map((p,i)=>p.u?`<div class="tile" role="button" tabindex="0" style="aspect-ratio:auto;background:none" onclick="vwOpen(${i})" onkeydown="if(event.key=='Enter')vwOpen(${i})"><img src="${p.u}" alt="" style="display:block;width:100%"></div>`:`<div class="tile" role="button" tabindex="0" style="background:${p.bg}" onclick="vwOpen(${i})" onkeydown="if(event.key=='Enter')vwOpen(${i})">${esc(p.t)}</div>`).join('')}
-function wallHTML(){
- VL=PH.s.filter(p=>p.city==st.city).map(p=>({u:IMG[p.id]})).filter(p=>p.u);
- if(VL.length)return tilesOf(VL);
- if(!SRV)return tilesOf(DEMOW.map((t,i)=>({bg:phBg(24+i*11,i),t})));
- return '<p class="mut" style="grid-column:1/-1">Фотографии появятся совсем скоро.</p>'}
 function port(){
  return `<p style="font:500 14px Manrope,Inter,sans-serif;color:var(--wine);margin:28px 0 8px">фотограф</p><h1>Полина<br>Кушнаренко</h1><p class="mut" style="max-width:40ch;font-size:15px">Сайт-афиша фото дней и скидок: живые съёмки по специальным ценам в Москве и Геленджике.</p>
  <button class="btn s" onclick="toast('Контакт фотографа будет указан в настройках бота')">Связаться</button>
  ${heroHTML()}
  <h2 style="margin-top:26px">Фото дни и скидки</h2>
  <div class="cityrow" role="group" aria-label="Город">${Object.entries(CITIES).map(([k,n])=>`<button type="button" class="chip ${st.city==k?'on':''}" aria-pressed="${st.city==k}" onclick="setCity('${k}')">${n}</button>`).join('')}<span class="mut" style="font-size:12px">↔ свайп</span></div>
- <div id="evs" ontouchstart="swS(event)" ontouchend="swE(event)">${evsHTML()}</div>
- <h2>Примеры работ · ${CITIES[st.city]}</h2>
- <div class="grid" id="gal">${wallHTML()}</div>`;
+ <div id="evs" ontouchstart="swS(event)" ontouchend="swE(event)">${evsHTML()}</div>`;
 }
-function vwOpen(i){VI=i;$('#vtt').textContent='Фото · '+(CITIES[st.city]||'');
- $('#vfeed').innerHTML=VL.map((p,k)=>`<article class="vp" id="vp${k}">${p.u?`<img src="${p.u}" alt="" loading="lazy">`:`<div class="ph" style="background:${p.bg}"></div>`}<div class="vcap">${k+1} из ${VL.length}</div></article>`).join('');
- const v=$('#vw');v.style.display='block';document.body.style.overflow='hidden';v.scrollTop=0;const e=$('#vp'+i);if(e&&e.scrollIntoView)e.scrollIntoView({block:'start'});$('#vw .vbk').focus()}
+// ——— полноэкранный просмотр фото анонса: слайды листаются свайпом/стрелками ————
+function vwOpen(list,i,ttl){VL=list||[];VI=i;$('#vtt').textContent=ttl||'Фото';
+ $('#vfeed').innerHTML=VL.map((u,k)=>`<article class="vp" id="vp${k}">${u?`<img src="${u}" alt="Фото ${k+1}" loading="lazy">`:''}<div class="vcap">${k+1} из ${VL.length}</div></article>`).join('');
+ const v=$('#vw'),f=$('#vfeed');v.style.display='flex';document.body.style.overflow='hidden';f.scrollLeft=i*(f.clientWidth||1);$('#vw .vbk').focus()}
 function vwClose(){$('#vw').style.display='none';$('#vfeed').innerHTML='';document.body.style.overflow=''}
-document.addEventListener('keydown',e=>{if($('#vw').style.display=='block'&&e.key=='Escape')vwClose()});
+function vwGo(d){const f=$('#vfeed');if(!f.clientWidth||!VL.length)return;const n=Math.max(0,Math.min(VL.length-1,Math.round(f.scrollLeft/f.clientWidth)+d));f.scrollTo({left:n*f.clientWidth,behavior:'smooth'})}
+document.addEventListener('keydown',e=>{if($('#vw').style.display!='flex')return;if(e.key=='Escape')vwClose();if(e.key=='ArrowRight')vwGo(1);if(e.key=='ArrowLeft')vwGo(-1)});
 function modal(h,id='modal'){const m=$('#'+id);m.innerHTML=`<div>${h}<button class="btn s" onclick="closeM('${id}')">Закрыть</button></div>`;m.style.display='flex'}
 const closeM=(id='modal')=>{const m=$('#'+id);m.style.display='none';if(id=='modal2')m.innerHTML=''};
 const isPdf=f=>/pdf/i.test(f.m||'')||/\.pdf$/i.test(f.n||'');
@@ -373,7 +364,7 @@ async function docUp(k,inp){const f=inp.files[0];if(!f)return;
 function docLink(k){const d=D.docs[k].at(-1);return `<a href="#" style="color:var(--ac)" onclick="event.preventDefault();showDoc('${k}')">${DN[k]}</a>`}
 function setAt(k){const c=$('#app .chips'),x=c?c.scrollLeft:0;st.at=k;render();const n=$('#app .chips');if(n){n.scrollLeft=x;const o=n.querySelector('.on');if(o&&o.scrollIntoView)o.scrollIntoView({inline:'nearest',block:'nearest'})}}
 function adm(){if(!st.adm)return loginScreen();
- const tabs=[['ord','Записи'],['ev','Анонсы'],['ref','Возвраты'],['doc','Документы'],['pho','Фото']];
+ const tabs=[['ord','Записи'],['ev','Анонсы'],['ref','Возвраты'],['doc','Документы'],['pho','Первый экран']];
  return `<h1>Админка</h1>`+`<div class="chips">`+tabs.map(t=>`<button class="chip ${st.at==t[0]?'on':''}" aria-pressed="${st.at==t[0]}" onclick="setAt('${t[0]}')">${t[1]}</button>`).join('')+`</div>`+admBody();
 }
 function admBody(){
@@ -411,7 +402,8 @@ function admBody(){
   </div>
   <div class="rt" id="rt${e.id}" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Описание анонса" onblur="evSaveDesc(${e.id})" onpaste="rtPaste(event)">${rtOut(e.d)}</div>
   <div class="mut" style="font-size:12px;margin:0 0 6px">Описание сохраняется само, когда вы уходите из поля. Вставка из Word и мессенджеров превращается в чистый текст с переносами.</div>
-  <div class="row" style="margin:8px 0 2px;align-items:flex-start">${e.img?`<div style="width:96px;flex:none">${IM(e.img)}<button class="btn r" style="width:100%;margin:4px 0 0;font-size:12px;padding:4px 2px" onclick="evDelImg(${e.id})">Убрать</button></div>`:''}<label style="flex:1">Фото к описанию — на сайте встанет справа от текста${e.img?' (новая загрузка заменит текущее)':''}<input type="file" accept="image/*" onchange="evUpImg(${e.id},this)"></label></div>
+  <label style="margin-top:8px">Фотографии анонса — встанут слайдами между названием и описанием (можно выбрать несколько сразу)<input type="file" accept="image/*" multiple onchange="evUpPhotos(${e.id},this)"></label>
+  ${(e.photos&&e.photos.length)?`<div style="${GR}">${e.photos.map((pid,i)=>`<div style="position:relative">${IM(pid)}<button class="btn r" style="${SB};top:3px;right:3px" aria-label="Убрать фото ${i+1}" onclick="evDelPhoto(${e.id},${i})">✕</button></div>`).join('')}</div>`:'<p class="mut" style="margin:2px 0 0">Фото пока нет — карточка анонса будет без слайдов.</p>'}
   <div class="row"><label>Цена, ₽<input type="number" value="${e.price}" onchange="evSet(${e.id},'price',this.value)"></label><label>Цена до скидки, ₽<input type="number" value="${e.old??''}" placeholder="без скидки" onchange="evSet(${e.id},'old',this.value===''?'':this.value)"></label></div>
   <label>Предоплата сейчас, ₽<input type="number" value="${e.pre??''}" placeholder="полная цена при записи" onchange="evSet(${e.id},'pre',this.value===''?'':this.value)"></label>
   <div class="mut" style="margin:6px 0 0">Даты фото дня (${e.dates.length}) — клиент записывается только на них:</div>
@@ -425,7 +417,7 @@ function admBody(){
  return Object.keys(DN).map(k=>{const d=D.docs[k].at(-1);return `<div class="card"><b>${DN[k]}</b><div class="mut">Текущая редакция: ${d.v} · ${d.f?esc(d.f.n)+' ('+Math.max(1,Math.round(d.f.s/1024))+' КБ)':'временный текст-заглушка'} · ${esc(d.d)} · всего версий: ${D.docs[k].length}. Принятые записями версии остаются неизменными.</div><div class="row" style="margin:10px 0"><button class="btn s" onclick="showDoc('${k}')">Посмотреть</button></div><label>Загрузить новую редакцию (PDF, DOC, DOCX, до ${SRV?4:10} МБ)<input type="file" accept=".pdf,.doc,.docx,.odt,.rtf,.txt,application/pdf" onchange="docUp('${k}',this)"></label></div>`}).join('');
 }
 // ——— редактор анонсов ————————————————————————————————————————————————————————
-function newEv(){D.ev.unshift({id:Math.max(0,...D.ev.map(e=>e.id))+1,city:st.city,t:'Новый фото день',d:'',img:'',dates:[],price:0,old:null,pre:null,on:false});save();render();toast('Анонс создан и пока скрыт от клиентов')}
+function newEv(){D.ev.unshift({id:Math.max(0,...D.ev.map(e=>e.id))+1,city:st.city,t:'Новый фото день',d:'',photos:[],dates:[],price:0,old:null,pre:null,on:false});save();render();toast('Анонс создан и пока скрыт от клиентов')}
 // ——— визуальный редактор описания ————————————————————————————————————————————
 // Кнопки панели не забирают фокус (mousedown гасится), поэтому команда применяется
 // к выделению внутри поля. Описание — ограниченный HTML: сервер дополнительно
@@ -449,25 +441,28 @@ function evSet(id,k,v){const e=D.ev.find(x=>x.id==id);if(!e)return;
 const ruDate=iso=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||''));return m?m[3]+'.'+m[2]+'.'+m[1]:''};
 function evAddDate(id){const e=D.ev.find(x=>x.id==id),i=$('#dt'+id);if(!e||!i)return;const d=ruDate(i.value);if(!d)return toast('Выберите дату в поле выше');if(e.dates.includes(d))return toast('Такая дата уже добавлена');e.dates.push(d);save();render()}
 function evDelDate(id,i){const e=D.ev.find(x=>x.id==id);if(!e||!(i>=0&&i<e.dates.length))return;e.dates.splice(i,1);save();render()}
-// Фото анонса: загружается сразу при выборе файла (та же папка photos/ и счётчик
-// PH.q, что у фотографий стенки), id запоминается в анонсе и уходит на сервер
-// вместе с остальными данными при автосохранении.
-async function evUpImg(id,inp){
+// Фото анонса: загружаются сразу при выборе файлов (та же папка photos/ и счётчик
+// PH.q, что у главного фото первого экрана), id запоминаются в анонсе и уходят
+// на сервер вместе с остальными данными при автосохранении. На сайте они
+// показываются слайдами между названием и описанием; максимум 12 фото на анонс.
+async function evUpPhotos(id,inp){
  const e=D.ev.find(x=>x.id==id);if(!e)return;
- const f=inp.files&&inp.files[0];if(!f)return;
- if(!f.type.startsWith('image/'))return toast('Нужен файл изображения (JPEG, PNG, WebP)');
- toast('Загружаю фото…');
- try{const nid='p'+PH.q++,u=await storeImg(nid,f);IMG[nid]=u;e.img=nid;save();render();toast(SRV?'Фото загружено, сохраняю…':'Фото добавлено (макет)')}
- catch(err){toast('Не удалось загрузить: '+((err&&err.message)||'файл не подошёл'))}
-}
-function evDelImg(id){const e=D.ev.find(x=>x.id==id);if(!e||!e.img)return;e.img='';save();render();toast('Фото убрано из анонса')}
+ const files=[...(inp.files||[])].filter(f=>f.type.startsWith('image/'));if(!files.length)return toast('Нужны файлы изображений (JPEG, PNG, WebP)');
+ if(!Array.isArray(e.photos))e.photos=e.img?[e.img]:[];
+ toast('Загружаю фото…');let n=0;
+ for(const f of files){
+  if(e.photos.length>=12){toast('В анонсе максимум 12 фото');break}
+  try{const nid='p'+PH.q++,u=await storeImg(nid,f);IMG[nid]=u;e.photos.push(nid);n++;toast('Загружено '+n+' из '+files.length)}catch(err){PERR=(err&&err.message)||''}}
+ if(n){delete e.img;save();render()}
+ toast(n?(SRV?'Фото загружены, сохраняю…':'Фото добавлены: '+n):'Не удалось загрузить: '+(PERR||'файл не подошёл'))}
+function evDelPhoto(id,i){const e=D.ev.find(x=>x.id==id);if(!e||!Array.isArray(e.photos)||!(i>=0&&i<e.photos.length))return;e.photos.splice(i,1);save();render();toast('Фото убрано из анонса')}
 function askDelEv(id){const e=D.ev.find(x=>x.id==id);if(!e)return;modal(`<h2>Удалить анонс?</h2><p>«${esc(e.t)}» исчезнет с сайта. Уже созданные записи не изменятся.</p><button class="btn r" onclick="delEv(${id})">Удалить</button>`)}
 function delEv(id){D.ev=D.ev.filter(e=>e.id!=id);save();closeM();render();toast('Анонс удалён')}
 render();
-initServer().then(()=>{if(!SRV)return idbOpen().then(idbAll).then(()=>{if(PH.s.length||Object.keys(VID).length||D.ev.some(e=>e&&e.img))render()})});
+initServer().then(()=>{if(!SRV)return idbOpen().then(idbAll).then(()=>{if(PH.s.length||Object.keys(VID).length||D.ev.some(e=>e&&((e.photos&&e.photos.length)||e.img)))render()})});
 (function(){const T=window.Telegram&&Telegram.WebApp;if(!T)return;
  try{T.ready();T.expand();T.setHeaderColor('#ffffff');T.setBackgroundColor('#ffffff');if(T.disableVerticalSwipes)T.disableVerticalSwipes()}catch(e){}
- const top=()=>$('#vw').style.display=='block'?'vw':$('#modal2').style.display=='flex'?'m2':$('#modal').style.display=='flex'?'m':null;
+ const top=()=>$('#vw').style.display=='flex'?'vw':$('#modal2').style.display=='flex'?'m2':$('#modal').style.display=='flex'?'m':null;
  const sync=()=>{try{top()?T.BackButton.show():T.BackButton.hide()}catch(e){}};
  try{T.BackButton.onClick(()=>{const t=top();if(t=='vw')vwClose();else if(t=='m2')closeM('modal2');else if(t=='m')closeM();sync()})}catch(e){}
  try{new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:['style']})}catch(e){}

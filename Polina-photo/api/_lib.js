@@ -149,7 +149,12 @@ export function richText(v) {
 export async function readState() {
   const st = await readJSON(STATE_PATH, true);
   if (!st || typeof st !== 'object') return st;
-  if (Array.isArray(st.ev)) st.ev = st.ev.map(e => (e && typeof e === 'object') ? { ...e, d: richText(e.d) } : e);
+  if (Array.isArray(st.ev)) st.ev = st.ev.map(e => {
+    if (!e || typeof e !== 'object') return e;
+    // фото анонса — массив id; старые записи с одиночным img мигрируют на месте
+    const photos = Array.isArray(e.photos) && e.photos.length ? e.photos.map(String) : (e.img ? [String(e.img)] : []);
+    return { ...e, photos, img: undefined };
+  });
   const def = st.set && typeof st.set === 'object' ? asStr(st.set.def, 20) : '';
   st.set = { def: CITIES[def] ? def : '' }; // город первой страницы сайта
   return st;
@@ -224,20 +229,26 @@ export function sanitizePub(pub) {
   // Анонсы фото дней: город строго из списка, даты задаёт фотограф —
   // клиент сможет выбрать запись только на эти даты (проверяется в order.js).
   // Описание — ограниченный HTML из визуального редактора, чистится richText().
-  // img — фото анонса (показывается рядом с описанием): хранится в photos/pN.jpg,
-  // в состоянии хранится только id «p<число>» из общего счётчика PH.q.
-  const ev = pub.ev.slice(0, 100).map(e => ({
-    id: asInt(e && e.id) ?? 0,
-    city: e && e.city === 'gel' ? 'gel' : 'msk',
-    t: asStr(e && e.t, 120),
-    d: richText(e && e.d),
-    img: /^p\d{1,12}$/.test(String((e && e.img) || '')) ? String(e.img) : '',
-    dates: (Array.isArray(e && e.dates) ? e.dates : []).slice(0, 30).map(x => asStr(x, 40)).filter(Boolean),
-    price: Math.max(0, asNum(e && e.price) ?? 0),
-    old: e && e.old == null ? null : Math.max(0, asNum(e.old) ?? 0),
-    pre: (() => { const n = asNum(e && e.pre); return n != null && n > 0 ? n : null; })(),
-    on: !!(e && e.on),
-  })).filter(e => e.id > 0);
+  // photos — фотографии анонса (показываются слайдами между названием и описанием):
+  // хранятся в photos/pN.jpg, в состоянии живёт массив id «p<число>» из общего
+  // счётчика PH.q; одиночное img от предыдущей версии сайта мигрирует в photos.
+  const phId = v => typeof v === 'string' && /^p\d{1,12}$/.test(v);
+  const ev = pub.ev.slice(0, 100).map(e => {
+    let photos = [...new Set((Array.isArray(e && e.photos) ? e.photos : []).filter(phId))].slice(0, 12);
+    if (!photos.length && phId(e && e.img)) photos = [e.img];
+    return {
+      id: asInt(e && e.id) ?? 0,
+      city: e && e.city === 'gel' ? 'gel' : 'msk',
+      t: asStr(e && e.t, 120),
+      d: richText(e && e.d),
+      photos: [...new Set(photos)],
+      dates: (Array.isArray(e && e.dates) ? e.dates : []).slice(0, 30).map(x => asStr(x, 40)).filter(Boolean),
+      price: Math.max(0, asNum(e && e.price) ?? 0),
+      old: e && e.old == null ? null : Math.max(0, asNum(e.old) ?? 0),
+      pre: (() => { const n = asNum(e && e.pre); return n != null && n > 0 ? n : null; })(),
+      on: !!(e && e.on),
+    };
+  }).filter(e => e.id > 0);
 
   // настройки сайта: какой город открывается первым при заходе (пусто — как раньше)
   const defCity = pub.set && typeof pub.set === 'object' ? asStr(pub.set.def, 20) : '';
@@ -262,8 +273,7 @@ export function sanitizePub(pub) {
 
   // идентификаторы фото/видео генерирует фронтенд как p<число> / v<число> —
   // жёсткий шаблон не даёт подсунуть в PH произвольные строки (те же p<число>
-  // используются как img у анонсов, счётчик общий)
-  const phId = v => typeof v === 'string' && /^p\d{1,12}$/.test(v);
+  // используются как photos у анонсов, счётчик общий)
   const s = Array.isArray(pub.PH.s) ? pub.PH.s.slice(0, 2000).map(p => ({
     id: phId(p && p.id) ? p.id : null,
     city: p && p.city === 'gel' ? 'gel' : 'msk',
