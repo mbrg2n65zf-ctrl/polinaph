@@ -8,7 +8,7 @@ const handle = wrap(async req => {
     const authed = checkToken(req);
     const st = await readState();
     if (!st) return json({ pub: null, ref: [] }); // клиент покажет пустую афишу до первого сохранения
-    const pub = { ev: st.ev, docs: st.docs, PH: st.PH };
+    const pub = { ev: st.ev, docs: st.docs, PH: st.PH, set: st.set || { def: '' } };
     if (!authed) return json({ pub }); // раздел «Возвраты» — служебный, наружу не отдаём
     return json({ pub, ref: Array.isArray(st.ref) ? st.ref : [] });
   }

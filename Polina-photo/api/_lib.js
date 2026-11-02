@@ -96,7 +96,64 @@ export const readJSON = async (path, allowNull = false) => {
   }
 };
 export const writeJSON = (path, data) => blobPut(path, JSON.stringify(data), 'application/json; charset=utf-8');
-export const readState = () => readJSON(STATE_PATH, true);
+
+// ——— описание анонса: ограниченный HTML из визуального редактора ——————————————
+// Фотограф форматирует описание в админке (жирный, курсив, подчёркивание,
+// зачёркивание, списки, абзацы, ссылки). Наружу пропускается только эта простая
+// разметка: скрипты, стили, обработчики событий, атрибуты и незнакомые теги
+// удаляются, ссылки живут только на http(s):, mailto: и tel:. Функция
+// идемпотентна (повторная очистка уже очищенного текста ничего не меняет),
+// поэтому применяется и при сохранении, и при чтении состояния — записи,
+// сохранённые старыми версиями сайта, тоже проходят через фильтр.
+const RT_TAG = { b: 'b', strong: 'b', i: 'i', em: 'i', u: 'u', s: 's', strike: 's', del: 's', br: 'br', p: 'p', div: 'p', ul: 'ul', ol: 'ol', li: 'li', a: 'a' };
+const RT_BLOCK = /<\s*(script|style|iframe|object|embed|svg|math|title|textarea|noscript|template)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi;
+const RT_AMP = /&(?![a-zA-Z]{2,8};|#[0-9]{1,7};|#x[0-9a-fA-F]{1,6};)/g;
+const attrEsc = x => String(x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// обратная операция ровно для тех сущностей, что создаёт attrEsc, — чтобы
+// повторная санитизация ссылки не удваивала экранирование «&» в адресе
+const RT_UNESC = /&(amp|lt|gt|quot|#39);/gi;
+const rtUnesc = x => x.replace(RT_UNESC, m => ({ '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" }[m.toLowerCase()]));
+export function richText(v) {
+  let s = String(v ?? '').slice(0, 20000);
+  if (!s) return '';
+  s = s.replace(RT_BLOCK, '').replace(/<!--[\s\S]*?-->/g, '');
+  let out = '', i = 0;
+  const putText = t => { out += t.replace(RT_AMP, '&amp;').replace(/[<>]/g, c => c === '<' ? '&lt;' : '&gt;').replace(/\r\n?|\n/g, '<br>'); };
+  while (i < s.length) {
+    const lt = s.indexOf('<', i);
+    if (lt < 0) { putText(s.slice(i)); break; }
+    putText(s.slice(i, lt));
+    const gt = s.indexOf('>', lt + 1);
+    if (gt < 0) { putText(s.slice(lt)); break; }
+    const raw = s.slice(lt, gt + 1);
+    // настоящий тег: <имя …>, </имя …>. Не похожее на тег («< b >» из обычного
+    // текста) показываем как текст; настоящий, но запрещённый тег выбрасываем целиком
+    const m = /^<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?>$/.exec(raw);
+    if (!m) { putText(raw); i = gt + 1; continue; }
+    const tag = RT_TAG[m[2].toLowerCase()];
+    if (!tag) { i = gt + 1; continue; }
+    if (m[1] === '/') out += '</' + tag + '>';
+    else if (tag === 'br') out += '<br>';
+    else if (tag === 'a') {
+      const h = /\shref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(raw) || [];
+      const href = rtUnesc(h[1] ?? h[2] ?? h[3] ?? '');
+      const safe = /^(https?:\/\/|mailto:|tel:)/i.test(href.replace(/[\s\u0000-\u001F]+/g, ''));
+      out += safe ? '<a href="' + attrEsc(href) + '">' : '<a>';
+    } else out += '<' + tag + '>';
+    i = gt + 1;
+  }
+  return out.slice(0, 6000);
+}
+
+// при чтении состояния: чистим описания анонсов и нормализуем настройки сайта
+export async function readState() {
+  const st = await readJSON(STATE_PATH, true);
+  if (!st || typeof st !== 'object') return st;
+  if (Array.isArray(st.ev)) st.ev = st.ev.map(e => (e && typeof e === 'object') ? { ...e, d: richText(e.d) } : e);
+  const def = st.set && typeof st.set === 'object' ? asStr(st.set.def, 20) : '';
+  st.set = { def: CITIES[def] ? def : '' }; // город первой страницы сайта
+  return st;
+}
 export const readOrders = async () => {
   const v = await readJSON(ORDERS_PATH, true);
   return Array.isArray(v) ? v : [];
@@ -166,17 +223,24 @@ export function sanitizePub(pub) {
 
   // Анонсы фото дней: город строго из списка, даты задаёт фотограф —
   // клиент сможет выбрать запись только на эти даты (проверяется в order.js).
+  // Описание — ограниченный HTML из визуального редактора, чистится richText().
+  // img — фото анонса (показывается рядом с описанием): хранится в photos/pN.jpg,
+  // в состоянии хранится только id «p<число>» из общего счётчика PH.q.
   const ev = pub.ev.slice(0, 100).map(e => ({
     id: asInt(e && e.id) ?? 0,
     city: e && e.city === 'gel' ? 'gel' : 'msk',
     t: asStr(e && e.t, 120),
-    d: asStr(e && e.d, 1200),
+    d: richText(e && e.d),
+    img: /^p\d{1,12}$/.test(String((e && e.img) || '')) ? String(e.img) : '',
     dates: (Array.isArray(e && e.dates) ? e.dates : []).slice(0, 30).map(x => asStr(x, 40)).filter(Boolean),
     price: Math.max(0, asNum(e && e.price) ?? 0),
     old: e && e.old == null ? null : Math.max(0, asNum(e.old) ?? 0),
     pre: (() => { const n = asNum(e && e.pre); return n != null && n > 0 ? n : null; })(),
     on: !!(e && e.on),
   })).filter(e => e.id > 0);
+
+  // настройки сайта: какой город открывается первым при заходе (пусто — как раньше)
+  const defCity = pub.set && typeof pub.set === 'object' ? asStr(pub.set.def, 20) : '';
 
   const docs = {};
   for (const k of Object.keys(DN)) {
@@ -197,7 +261,8 @@ export function sanitizePub(pub) {
   }
 
   // идентификаторы фото/видео генерирует фронтенд как p<число> / v<число> —
-  // жёсткий шаблон не даёт подсунуть в PH произвольные строки
+  // жёсткий шаблон не даёт подсунуть в PH произвольные строки (те же p<число>
+  // используются как img у анонсов, счётчик общий)
   const phId = v => typeof v === 'string' && /^p\d{1,12}$/.test(v);
   const s = Array.isArray(pub.PH.s) ? pub.PH.s.slice(0, 2000).map(p => ({
     id: phId(p && p.id) ? p.id : null,
@@ -209,7 +274,7 @@ export function sanitizePub(pub) {
     ['mp4', 'webm', 'mov'].includes(pub.PH.video.ext)
     ? { id: pub.PH.video.id, ext: pub.PH.video.ext } : null;
 
-  return { ev, docs, PH: { s, hero: phId(pub.PH.hero) ? pub.PH.hero : '', video, q: Math.min(1e12, asInt(pub.PH.q) ?? 1) } };
+  return { ev, docs, PH: { s, hero: phId(pub.PH.hero) ? pub.PH.hero : '', video, q: Math.min(1e12, asInt(pub.PH.q) ?? 1) }, set: { def: CITIES[defCity] ? defCity : '' } };
 }
 
 export function sanitizeRef(ref) {

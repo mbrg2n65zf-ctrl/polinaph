@@ -77,6 +77,18 @@ h2{font-size:22px;font-weight:600;margin:30px 0 8px}
 .pr{font:600 24px/1.25 Manrope,Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
 .dates{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .dates span{border:1px solid var(--bd);border-radius:8px;padding:3px 9px;font-size:13px;font-variant-numeric:tabular-nums}
+.rtb{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 4px}
+.tbn{border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;min-width:34px;padding:5px 8px;font:inherit;font-size:13px;cursor:pointer}
+.rt{border:1px solid var(--bd);border-radius:8px;padding:9px 10px;min-height:84px;background:var(--bg);color:var(--fg);font:inherit;overflow-wrap:anywhere;margin:0 0 4px}
+.rt:focus{outline:2px solid var(--bd);outline-offset:-1px}
+.rt p,.evd p{margin:.3em 0}.rt ul,.rt ol,.evd ul,.evd ol{margin:.3em 0;padding-left:1.4em}
+.rt a{color:var(--ac)}.evd a{color:inherit}
+.evsplit{display:grid;grid-template-columns:minmax(0,1fr) 118px;gap:12px;align-items:start;margin:2px 0 6px}
+.evsplit .evd{margin:0}
+.evimg{border-radius:10px;overflow:hidden;background:var(--bd);cursor:zoom-in}
+.evimg img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover}
+.evimg:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+@media(max-width:370px){.evsplit{grid-template-columns:minmax(0,1fr) 96px;gap:10px}}
 </style><meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -86,6 +98,9 @@ h2{font-size:22px;font-weight:600;margin:30px 0 8px}
 <div id="vw" role="dialog" aria-modal="true" aria-label="Фотографии" style="display:none"><div class="vh"><button class="vbk" onclick="vwClose()" aria-label="Назад">←</button><b id="vtt">Фото</b></div><div id="vfeed"></div></div>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Описание анонса: на сервере оно уже очищено (richText в api/_lib.js), в демо-макете
+// его пишет сам фотограф. Старые записи без разметки выводим как текст с переносами.
+const rtOut=s=>{s=String(s??'');return /<[a-zA-Z][^>]*>/.test(s)?s:esc(s).replace(/\r\n?|\n/g,'<br>')};
 const rub=n=>n==null?'определит фотограф':Number(n).toLocaleString('ru-RU')+' ₽',now=()=>new Date().toLocaleString('ru-RU');
 // Города фото дней — ДОЛЖНЫ совпадать с CITIES в api/_lib.js (править синхронно)
 const CITIES={msk:'Москва',gel:'Геленджик'};
@@ -100,8 +115,8 @@ const E0=[
  {id:2,city:'msk',t:'Экспресс-портреты в центре',d:'15 минут · 7 кадров · готовность 3 дня',dates:['22.11.2026'],price:2500,old:null,pre:null,on:true},
  {id:3,city:'gel',t:'Фото день у моря',d:'30 минут на набережной · 20 кадров · рассветный свет',dates:['05.12.2026','06.12.2026','07.12.2026'],price:3900,old:5900,pre:1000,on:true},
 ];
-let D=(()=>{try{return JSON.parse(localStorage.getItem('pk2'))}catch(e){return null}})()||{ev:E0,ord:[],ref:[],docs:Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]])),seq:1};
-(()=>{if(!D||typeof D!='object')D={};if(!Array.isArray(D.ev))D.ev=E0.map(x=>({...x}));if(!Array.isArray(D.ord))D.ord=[];if(!Array.isArray(D.ref))D.ref=[];D.seq=+D.seq||1;const dd={};for(const k of Object.keys(DN))dd[k]=Array.isArray(D.docs&&D.docs[k])?D.docs[k]:[{v:1,d:now(),t:STUB}];D.docs=dd})();
+let D=(()=>{try{return JSON.parse(localStorage.getItem('pk2'))}catch(e){return null}})()||{ev:E0,ord:[],ref:[],set:{def:''},docs:Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]])),seq:1};
+(()=>{if(!D||typeof D!='object')D={};if(!Array.isArray(D.ev))D.ev=E0.map(x=>({...x}));if(!Array.isArray(D.ord))D.ord=[];if(!Array.isArray(D.ref))D.ref=[];D.seq=+D.seq||1;if(!D.set||typeof D.set!='object')D.set={};D.set.def=CITIES[D.set.def]?D.set.def:'';const dd={};for(const k of Object.keys(DN))dd[k]=Array.isArray(D.docs&&D.docs[k])?D.docs[k]:[{v:1,d:now(),t:STUB}];D.docs=dd})();
 // Вход в админку (экран пароля фотографа): путь /admin, ссылка Telegram с ?startapp=admin
 // (Telegram передаёт параметр и как start_param, и как tgWebAppStartParam в URL мини-приложения),
 // либо ?admin / #admin в адресе сайта. В демо-режиме (file:) #admin лишь показывает
@@ -110,7 +125,8 @@ const TGSP=(()=>{try{return (window.Telegram&&Telegram.WebApp&&Telegram.WebApp.i
 const ADM_OK=/admin/.test(location.hash+location.search)||TGSP=='admin';
 const ADMIN_PAGE=/^\/admin\/?$/.test(location.pathname)||TGSP=='admin'||/[?&]tgWebAppStartParam=admin(&|$)/.test(location.search)||(location.protocol!='file:'&&/admin/.test(location.hash+location.search)),TGDATA=()=>{try{return Telegram.WebApp.initData||''}catch(e){return ''}};
 let BOOT=location.protocol=='file:'?'':'load',BOOTERR='',SUBM=false;
-let st={tab:ADMIN_PAGE?'adm':'port',city:(()=>{try{return localStorage.getItem('pk_city')=='gel'?'gel':'msk'}catch(e){return 'msk'}})(),bdate:null,pcity:'msk',ev:null,adm:false,at:'ord'};
+try{document.execCommand('defaultParagraphSeparator',false,'p')}catch(e){} // Enter в редакторе описания делает абзац
+let st={tab:ADMIN_PAGE?'adm':'port',city:(()=>{if(D.set&&CITIES[D.set.def])return D.set.def;try{return localStorage.getItem('pk_city')=='gel'?'gel':'msk'}catch(e){return 'msk'}})(),bdate:null,pcity:'msk',ev:null,adm:false,at:'ord',ucity:false};
 let SRV=false,PERR='',TOKEN=(()=>{try{const t=localStorage.getItem('pk_tok')||'';return +t.split('.')[0]>Date.now()?t:''}catch(e){return ''}})();
 const MYK='pk_my',myList=()=>{try{return JSON.parse(localStorage.getItem(MYK))||[]}catch(e){return[]}};
 const fileUrl=p=>'/api/file?p='+encodeURIComponent(p);
@@ -127,7 +143,12 @@ async function api(path,o={}){
  return d}
 function applyState(p){
  D.ev=Array.isArray(p.ev)?p.ev:[];
+ // фото анонсов лежат в той же папке photos/pN.jpg, что и фотографии стенки
+ for(const x of D.ev)if(x&&x.img)IMG[x.img]=fileUrl('photos/'+x.img+'.jpg');
  if(p.docs&&typeof p.docs=='object')D.docs=p.docs;
+ D.set=p.set&&typeof p.set=='object'?{def:CITIES[p.set.def]?p.set.def:''}:{def:''};
+ // выбранный посетителем город не перекидываем, заданный фотографом — применяем
+ if(!st.ucity&&D.set.def&&CITIES[D.set.def])st.city=D.set.def;
  PH=p.PH&&typeof p.PH=='object'?p.PH:{};
  PH.s=Array.isArray(PH.s)?PH.s:[];PH.hero=typeof PH.hero=='string'?PH.hero:'';PH.q=+PH.q||1;
  PH.video=PH.video&&PH.video.id?{id:PH.video.id,ext:PH.video.ext||'mp4'}:null;
@@ -156,7 +177,7 @@ let SNAP={},syncT=null;
 const snap=()=>{SNAP={};D.ord.forEach(o=>SNAP[o.id]=JSON.stringify(o))};
 function scheduleSync(){clearTimeout(syncT);syncT=setTimeout(doSync,700)}
 async function doSync(){if(!SRV||!TOKEN)return;
- try{await api('/api/state',{method:'POST',body:{pub:{ev:D.ev,docs:D.docs,PH},ref:D.ref}});
+ try{await api('/api/state',{method:'POST',body:{pub:{ev:D.ev,docs:D.docs,PH,set:D.set},ref:D.ref}});
   for(const o of D.ord){const j=JSON.stringify(o);if(SNAP[o.id]!==j){await api('/api/order',{method:'POST',body:{action:'admin',order:o}});SNAP[o.id]=j}}
   toast('Сохранено на сервере')}catch(e){toast('Не удалось сохранить: '+e.message)}}
 const save=()=>{if(SRV){if(TOKEN&&st.adm)scheduleSync();return}try{localStorage.setItem('pk2',JSON.stringify(D))}catch(e){}};
@@ -201,16 +222,21 @@ function heroHTML(){
  if(PH.hero&&IMG[PH.hero])return `<div class="hero"><img src="${IMG[PH.hero]}" alt="Главное фото"><div class="hi">Полина Кушнаренко · фотограф</div></div>`;
  return `<div class="hero"><div class="hi" style="position:absolute;left:0;right:0;top:auto;bottom:0">Здесь будет видео или главное фото</div></div>`}
 // ——— города: переключение чипсами и свайпом по списку анонсов —————————————————
-function setCity(c){if(c!=st.city){st.city=c;st.bdate=null;try{localStorage.setItem('pk_city',c)}catch(e){}render()}}
+function setCity(c){if(c!=st.city){st.city=c;st.ucity=true;st.bdate=null;try{localStorage.setItem('pk_city',c)}catch(e){}render()}}
 let swX=0,swY=0,swT=0;
 const ptX=e=>e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientX:e.clientX,ptY=e=>e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientY:e.clientY;
 function swS(e){swX=ptX(e);swY=ptY(e);swT=Date.now()}
 function swE(e){const dx=ptX(e)-swX,dy=ptY(e)-swY;if(Date.now()-swT>900||Math.abs(dx)<50||Math.abs(dx)<1.5*Math.abs(dy))return;
  const next=dx<0?(st.city=='msk'?'gel':'msk'):(st.city=='gel'?'msk':'msk');setCity(next)}
 // ——— анонсы и стена фотографий ————————————————————————————————————————————————
+// Описание анонса на сайте: слева текст, справа фото (если фотограф его добавил).
+// Картинка открывается крупно по клику. Без фото — просто текст, как раньше.
+const evSplit=e=>{const u=e.img&&IMG[e.img];if(!e.d&&!u)return '';
+ return `<div class="evsplit"><div class="evd mut">${e.d?rtOut(e.d):''}</div>${u?`<div class="evimg" role="button" tabindex="0" title="Открыть фото" aria-label="Открыть фото к анонсу" onclick="evZoom('${e.img}')" onkeydown="if(event.key=='Enter')evZoom('${e.img}')"><img src="${u}" alt="Фото к анонсу" loading="lazy"></div>`:''}</div>`};
+function evZoom(id){const u=IMG[id];if(!u)return;modal(`<img src="${u}" alt="Фото к анонсу" style="width:100%;border-radius:10px">`,'modal2')}
 function evCard(e){
  const disc=e.old&&e.old>e.price?Math.round((1-e.price/e.old)*100):0,pre=e.pre!=null&&e.pre<e.price;
- return `<div class="card"><b>${esc(e.t)}</b>${e.d?`<div class="mut">${esc(e.d)}</div>`:''}
+ return `<div class="card"><b>${esc(e.t)}</b>${evSplit(e)}
  ${e.dates.length?`<div class="dates">${e.dates.map(d=>`<span>${esc(d)}</span>`).join('')}</div>`:'<div class="mut">даты уточняются</div>'}
  <div class="row" style="margin-top:10px;align-items:flex-end"><span><span class="pr">${rub(e.price)}</span>${disc?` <s class="mut">${rub(e.old)}</s> <span class="tag t">−${disc}%</span>`:''}<br><span class="mut">${pre?'предоплата сейчас: '+rub(e.pre):'оплата при записи'}</span></span>
  <button class="btn" onclick="openBook(${e.id})">Записаться</button></div></div>`}
@@ -224,7 +250,7 @@ function book(){
  const e=D.ev.find(x=>x&&x.id==st.ev);if(!e)return `<h1 style="margin-top:20px">Запись</h1><p class="mut">Анонс недоступен.</p><button class="btn s" onclick="go('port')">← На главную</button>`;
  const disc=e.old&&e.old>e.price?Math.round((1-e.price/e.old)*100):0,pre=e.pre!=null&&e.pre<e.price;
  return `<button class="btn s" style="margin:14px 0 0" onclick="go('port')">← К анонсам</button><h1 style="margin-top:10px">${esc(e.t)}</h1>
- <p class="mut">${esc(CITIES[e.city]||e.city)}${e.d?' · '+esc(e.d):''}</p>
+ <p class="mut" style="margin-bottom:${(e.d||e.img)?'2px':'0'}">${esc(CITIES[e.city]||e.city)}</p><div style="margin:0 0 8px">${evSplit(e)}</div>
  <div class="card"><b>Дата фото дня</b><div class="mut" style="margin-top:2px">Запись только на даты, которые задал фотограф.</div>
  <div class="chips" id="bdw" style="margin:8px -20px 0">${e.dates.map(d=>`<button type="button" class="chip ${st.bdate==d?'on':''}" data-d="${esc(d)}" aria-pressed="${st.bdate==d}" onclick="setBD(this.dataset.d)">${esc(d)}</button>`).join('')}</div>
  <div class="mut" id="bdh">${st.bdate?'Выбрана дата: '+esc(st.bdate):(e.dates.length?'Выберите дату из списка':'Даты уточняются — пока запись недоступна')}</div></div>
@@ -366,9 +392,26 @@ function admBody(){
   ${o.com?'<br>Комм.: '+esc(o.com):''}${o.cons?'<br>Консультация: '+esc(o.cons):''}${o.sum?'<br>Итог консультации: '+esc(o.sum):''}${o.note?'<br>Заметка (скрыта от клиента): '+esc(o.note):''}</div>
   <input id="in${o.id}" placeholder="Поле для действия: дата / итог / сумма / причина / заметка">${b}${B('note','Сохранить как заметку','s')}
   <div class="log">Документы: ${(o.acc||[]).map(a=>esc(a.doc)+' р.'+a.ver).join('; ')}<br>${(o.log||[]).map(esc).join('<br>')}</div></div>`}).join(''):'<p class="mut">Записей пока нет.</p>';
- if(st.at=='ev')return `<div class="warn">Анонс — фото день или скидка в городе. Даты задаёте вы: клиент выберет только из них. Цена фиксируется в записи в момент создания, позже её изменение не затронет уже созданные записи.</div><button class="btn" onclick="newEv()">+ Новый анонс</button>`+(D.ev.length?D.ev.map(e=>`<div class="card"><div class="row"><b>${esc(e.t)}</b><span class="tag">${esc(CITIES[e.city]||e.city)}${e.on?'':' · скрыт'}</span></div>
+ if(st.at=='ev')return `<div class="warn">Анонс — фото день или скидка в городе. Даты задаёте вы: клиент выберет только из них. Цена фиксируется в записи в момент создания, позже её изменение не затронет уже созданные записи.</div>
+ <div class="card"><b>Город первой страницы</b><div class="mut" style="margin:2px 0 6px">Какой город открывается у посетителей при заходе на сайт (свайп и чипсы остаются). Пока вы не выберете — открывается Москва.</div>
+ <div class="row"><label>Город по умолчанию<select onchange="setDef(this.value)"><option value="" ${!D.set.def?'selected':''}>Не задан (Москва)</option><option value="msk" ${D.set.def=='msk'?'selected':''}>Москва</option><option value="gel" ${D.set.def=='gel'?'selected':''}>Геленджик</option></select></label></div></div>
+ <button class="btn" onclick="newEv()">+ Новый анонс</button>`+(D.ev.length?D.ev.map(e=>`<div class="card"><div class="row"><b>${esc(e.t)}</b><span class="tag">${esc(CITIES[e.city]||e.city)}${e.on?'':' · скрыт'}</span></div>
   <div class="row"><label>Город<select onchange="evSet(${e.id},'city',this.value)"><option value="msk" ${e.city=='msk'?'selected':''}>Москва</option><option value="gel" ${e.city=='gel'?'selected':''}>Геленджик</option></select></label><label>Название<input value="${esc(e.t)}" onchange="evSet(${e.id},'t',this.value)"></label></div>
-  <label>Описание<textarea rows="2" onchange="evSet(${e.id},'d',this.value)">${esc(e.d)}</textarea></label>
+  <label style="margin-top:8px">Описание — панель сверху форматирует выделенный текст, Enter делает новую строку</label>
+  <div class="rtb" role="toolbar" aria-label="Форматирование описания">
+   <button type="button" class="tbn" title="Жирный" onmousedown="return rtm(event)" onclick="rtCmd('bold')"><b>Ж</b></button>
+   <button type="button" class="tbn" title="Курсив" onmousedown="return rtm(event)" onclick="rtCmd('italic')"><i>К</i></button>
+   <button type="button" class="tbn" title="Подчёркнутый" onmousedown="return rtm(event)" onclick="rtCmd('underline')"><u>Ч</u></button>
+   <button type="button" class="tbn" title="Зачёркнутый" onmousedown="return rtm(event)" onclick="rtCmd('strikeThrough')"><s>З</s></button>
+   <button type="button" class="tbn" title="Маркированный список" onmousedown="return rtm(event)" onclick="rtCmd('insertUnorderedList')">• Список</button>
+   <button type="button" class="tbn" title="Нумерованный список" onmousedown="return rtm(event)" onclick="rtCmd('insertOrderedList')">1. Список</button>
+   <button type="button" class="tbn" title="Вставить ссылку" onmousedown="return rtm(event)" onclick="rtLink()">Ссылка</button>
+   <button type="button" class="tbn" title="Убрать ссылку" onmousedown="return rtm(event)" onclick="rtCmd('unlink')">Без ссылки</button>
+   <button type="button" class="tbn" title="Убрать форматирование выделенного" onmousedown="return rtm(event)" onclick="rtCmd('removeFormat')">⌫ Формат</button>
+  </div>
+  <div class="rt" id="rt${e.id}" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Описание анонса" onblur="evSaveDesc(${e.id})" onpaste="rtPaste(event)">${rtOut(e.d)}</div>
+  <div class="mut" style="font-size:12px;margin:0 0 6px">Описание сохраняется само, когда вы уходите из поля. Вставка из Word и мессенджеров превращается в чистый текст с переносами.</div>
+  <div class="row" style="margin:8px 0 2px;align-items:flex-start">${e.img?`<div style="width:96px;flex:none">${IM(e.img)}<button class="btn r" style="width:100%;margin:4px 0 0;font-size:12px;padding:4px 2px" onclick="evDelImg(${e.id})">Убрать</button></div>`:''}<label style="flex:1">Фото к описанию — на сайте встанет справа от текста${e.img?' (новая загрузка заменит текущее)':''}<input type="file" accept="image/*" onchange="evUpImg(${e.id},this)"></label></div>
   <div class="row"><label>Цена, ₽<input type="number" value="${e.price}" onchange="evSet(${e.id},'price',this.value)"></label><label>Цена до скидки, ₽<input type="number" value="${e.old??''}" placeholder="без скидки" onchange="evSet(${e.id},'old',this.value===''?'':this.value)"></label></div>
   <label>Предоплата сейчас, ₽<input type="number" value="${e.pre??''}" placeholder="полная цена при записи" onchange="evSet(${e.id},'pre',this.value===''?'':this.value)"></label>
   <div class="mut" style="margin:6px 0 0">Даты фото дня (${e.dates.length}) — клиент записывается только на них:</div>
@@ -382,22 +425,46 @@ function admBody(){
  return Object.keys(DN).map(k=>{const d=D.docs[k].at(-1);return `<div class="card"><b>${DN[k]}</b><div class="mut">Текущая редакция: ${d.v} · ${d.f?esc(d.f.n)+' ('+Math.max(1,Math.round(d.f.s/1024))+' КБ)':'временный текст-заглушка'} · ${esc(d.d)} · всего версий: ${D.docs[k].length}. Принятые записями версии остаются неизменными.</div><div class="row" style="margin:10px 0"><button class="btn s" onclick="showDoc('${k}')">Посмотреть</button></div><label>Загрузить новую редакцию (PDF, DOC, DOCX, до ${SRV?4:10} МБ)<input type="file" accept=".pdf,.doc,.docx,.odt,.rtf,.txt,application/pdf" onchange="docUp('${k}',this)"></label></div>`}).join('');
 }
 // ——— редактор анонсов ————————————————————————————————————————————————————————
-function newEv(){D.ev.unshift({id:Math.max(0,...D.ev.map(e=>e.id))+1,city:st.city,t:'Новый фото день',d:'',dates:[],price:0,old:null,pre:null,on:false});save();render();toast('Анонс создан и пока скрыт от клиентов')}
+function newEv(){D.ev.unshift({id:Math.max(0,...D.ev.map(e=>e.id))+1,city:st.city,t:'Новый фото день',d:'',img:'',dates:[],price:0,old:null,pre:null,on:false});save();render();toast('Анонс создан и пока скрыт от клиентов')}
+// ——— визуальный редактор описания ————————————————————————————————————————————
+// Кнопки панели не забирают фокус (mousedown гасится), поэтому команда применяется
+// к выделению внутри поля. Описание — ограниченный HTML: сервер дополнительно
+// чистит его (richText в api/_lib.js), так что клиентам уходит только разметка.
+function setDef(v){D.set.def=CITIES[v]?v:'';save();render();toast(D.set.def?'Первая страница сайта: '+CITIES[D.set.def]:'Город по умолчанию не задан — открывается Москва')}
+const rtm=e=>{e.preventDefault();return false};
+function rtCmd(c,v){try{document.execCommand(c,false,v||null)}catch(e){}}
+function rtLink(){const u=prompt('Адрес ссылки (https://…, mailto:… или tel:…)','https://');if(u==null)return;const s=u.trim();
+ if(/^(https?:\/\/|mailto:|tel:)/i.test(s))rtCmd('createLink',s);else toast('Ссылка должна начинаться с https://, http://, mailto: или tel:')}
+function rtPaste(e){e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text/plain');if(!t)return;
+ const parts=String(t).split(/\r\n?|\n/);try{for(let i=0;i<parts.length;i++){if(i&&!document.execCommand('insertLineBreak'))document.execCommand('insertHTML',false,'<br>');if(parts[i])document.execCommand('insertText',false,parts[i])}}catch(e2){document.execCommand('insertText',false,t)}}
+function evSaveDesc(id){const el=$('#rt'+id),e=D.ev.find(x=>x.id==id);if(!el||!e)return;
+ const v=el.innerHTML.slice(0,6000);if(v===e.d)return;e.d=v;save();toast('Описание сохранено')}
 function evSet(id,k,v){const e=D.ev.find(x=>x.id==id);if(!e)return;
  if(k=='city'){if(v!='msk'&&v!='gel')return toast('Недопустимый город');e.city=v}
  else if(k=='price'){v=+v;if(!isFinite(v)||v<0)return toast('Введите корректную цену');e.price=v}
  else if(k=='old'||k=='pre'){if(v===''||v==null)e[k]=null;else{v=+v;if(!isFinite(v)||v<0)return toast('Введите корректную сумму');e[k]=v}}
  else if(k=='t')e.t=String(v??'').slice(0,120);
- else if(k=='d')e.d=String(v??'').slice(0,1200);
  else if(k=='on')e.on=!!v;
  save();render()}
 const ruDate=iso=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||''));return m?m[3]+'.'+m[2]+'.'+m[1]:''};
 function evAddDate(id){const e=D.ev.find(x=>x.id==id),i=$('#dt'+id);if(!e||!i)return;const d=ruDate(i.value);if(!d)return toast('Выберите дату в поле выше');if(e.dates.includes(d))return toast('Такая дата уже добавлена');e.dates.push(d);save();render()}
 function evDelDate(id,i){const e=D.ev.find(x=>x.id==id);if(!e||!(i>=0&&i<e.dates.length))return;e.dates.splice(i,1);save();render()}
+// Фото анонса: загружается сразу при выборе файла (та же папка photos/ и счётчик
+// PH.q, что у фотографий стенки), id запоминается в анонсе и уходит на сервер
+// вместе с остальными данными при автосохранении.
+async function evUpImg(id,inp){
+ const e=D.ev.find(x=>x.id==id);if(!e)return;
+ const f=inp.files&&inp.files[0];if(!f)return;
+ if(!f.type.startsWith('image/'))return toast('Нужен файл изображения (JPEG, PNG, WebP)');
+ toast('Загружаю фото…');
+ try{const nid='p'+PH.q++,u=await storeImg(nid,f);IMG[nid]=u;e.img=nid;save();render();toast(SRV?'Фото загружено, сохраняю…':'Фото добавлено (макет)')}
+ catch(err){toast('Не удалось загрузить: '+((err&&err.message)||'файл не подошёл'))}
+}
+function evDelImg(id){const e=D.ev.find(x=>x.id==id);if(!e||!e.img)return;e.img='';save();render();toast('Фото убрано из анонса')}
 function askDelEv(id){const e=D.ev.find(x=>x.id==id);if(!e)return;modal(`<h2>Удалить анонс?</h2><p>«${esc(e.t)}» исчезнет с сайта. Уже созданные записи не изменятся.</p><button class="btn r" onclick="delEv(${id})">Удалить</button>`)}
 function delEv(id){D.ev=D.ev.filter(e=>e.id!=id);save();closeM();render();toast('Анонс удалён')}
 render();
-initServer().then(()=>{if(!SRV)return idbOpen().then(idbAll).then(()=>{if(PH.s.length||Object.keys(VID).length)render()})});
+initServer().then(()=>{if(!SRV)return idbOpen().then(idbAll).then(()=>{if(PH.s.length||Object.keys(VID).length||D.ev.some(e=>e&&e.img))render()})});
 (function(){const T=window.Telegram&&Telegram.WebApp;if(!T)return;
  try{T.ready();T.expand();T.setHeaderColor('#ffffff');T.setBackgroundColor('#ffffff');if(T.disableVerticalSwipes)T.disableVerticalSwipes()}catch(e){}
  const top=()=>$('#vw').style.display=='block'?'vw':$('#modal2').style.display=='flex'?'m2':$('#modal').style.display=='flex'?'m':null;
