@@ -8,7 +8,7 @@
 // возвращает {paymentURL} — платёжную форму открывает клиент.
 // Статус оплаты приходит отдельно на /api/pay-webhook (NotificationURL): доверять
 // финальному статусу можно только уведомлению с верной подписью Token.
-import { json, errJson, wrap, asInt, readOrders, mutateOrders, rateLimit, clientIp, tbankToken, nowRu, notify } from './_lib.js';
+import { json, errJson, wrap, asInt, readOrders, mutateOrders, rateLimit, clientIp, tbankToken, nowRu, notify, bankPost, tryJson } from './_lib.js';
 
 // Боевой домен по документации — securepay.tinkoff.ru (бренд Т-Банк, домен банка
 // прежний). Тестовая среда: TBANK_API_URL=https://rest-api-test.tinkoff.ru/v2
@@ -52,19 +52,19 @@ const handle = wrap(async req => {
     FailURL: process.env.TBANK_FAIL_URL || origin + '/',
   };
   const payload = { ...init, Token: tbankToken(init, password) };
+  // Запрос к банку идёт через bankPost: он доверяет УЦ Минцифры, чьим сертификатом
+  // подписан securepay.tinkoff.ru. Обычный fetch на серверах Vercel падал с
+  // SELF_SIGNED_CERT_IN_CHAIN — посетитель видел это как «Банк не отвечает».
   let resp;
   try {
-    resp = await fetch(process.env.TBANK_API_URL || 'https://securepay.tinkoff.ru/v2/Init', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(15000),
-    });
+    resp = await bankPost(process.env.TBANK_API_URL || 'https://securepay.tinkoff.ru/v2/Init', payload);
   } catch (e) {
+    const code = String((e && (e.code || e.message)) || 'ошибка сети').slice(0, 100);
+    notify('💳 Банк недоступен при создании платежа (заявка №' + id + '): ' + code).catch(() => {});
     return errJson(502, 'Банк не отвечает — попробуйте ещё раз через минуту');
   }
-  const data = await resp.json().catch(() => null);
-  if (!resp.ok || !data || !data.Success || !data.PaymentURL) {
+  const data = tryJson(resp.text);
+  if (resp.status !== 200 || !data || !data.Success || !data.PaymentURL) {
     const detail = data && data.Message
       ? ' (' + String(data.Message).slice(0, 120) + (data.Details ? ': ' + String(data.Details).slice(0, 160) : '') + ')'
       : '';

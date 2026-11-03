@@ -2,7 +2,10 @@
 // Рантайм: Vercel Functions (Node.js), Web Request/Response, ESM
 // (см. package.json "type": "module" — без него import в .js не работает).
 import { createHmac, createHash, timingSafeEqual, randomBytes } from 'node:crypto';
+import https from 'node:https';
+import tls from 'node:tls';
 import { blobPut, blobGet } from './_blob.js';
+import { TBANK_CA } from './tbank-ca.js';
 
 export { blobPut, blobGet };
 
@@ -427,6 +430,47 @@ export const tbankToken = (params, password) => {
   pairs.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
   return createHash('sha256').update(pairs.map(p => p[1]).join(''), 'utf8').digest('hex');
 };
+
+// POST к банку (JSON → JSON) через node:https с явным доверием к УЦ Минцифры.
+// Обычный fetch на серверах Vercel падает с SELF_SIGNED_CERT_IN_CHAIN: сертификат
+// securepay.tinkoff.ru подписан корнем «Russian Trusted Root CA», которого в
+// стандартном хранилище Node нет (см. api/tbank-ca.js). Опция ca заменяет список
+// доверенных по умолчанию, поэтому добавляем и штатные корни (tls.rootCertificates) —
+// если банк когда-нибудь перейдёт на публичный УЦ, связь не сломается.
+// globalThis.__bankPostImpl — шов для тестов: подменяет реальный сетевой вызов.
+// TBANK_CA передаём массивом отдельных PEM-блоков: так Node гарантированно
+// разбирает оба сертификата, даже если бы строка бандла оказалась неидеальной.
+const TBANK_CA_LIST = String(TBANK_CA).match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g) || [];
+export function bankPost(url, payload, timeoutMs = 15000) {
+  if (globalThis.__bankPostImpl) return globalThis.__bankPostImpl(url, payload, timeoutMs);
+  const body = JSON.stringify(payload);
+  const u = new URL(url);
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: u.hostname,
+      port: 443,
+      path: u.pathname + u.search,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+      ca: [...tls.rootCertificates, ...TBANK_CA_LIST],
+      servername: u.hostname,
+      timeout: timeoutMs,
+    }, res => {
+      let data = '';
+      res.setEncoding('utf8');
+      res.on('data', c => {
+        data += c;
+        if (data.length > 1e6) req.destroy(new Error('Ответ банка слишком большой'));
+      });
+      res.on('end', () => resolve({ status: res.statusCode || 0, text: data }));
+    });
+    req.on('timeout', () => req.destroy(new Error('Банк не ответил за отведённое время')));
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+export const tryJson = s => { try { return JSON.parse(s); } catch { return null; } };
 
 // ——— проверка подписи Telegram Mini App (initData) ————————————————————————
 // Нужна только для атрибуции заявки пользователю Telegram; заявки принимаются и без неё.
