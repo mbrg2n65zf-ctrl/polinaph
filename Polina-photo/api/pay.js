@@ -8,7 +8,7 @@
 // возвращает {paymentURL} — платёжную форму открывает клиент.
 // Статус оплаты приходит отдельно на /api/pay-webhook (NotificationURL): доверять
 // финальному статусу можно только уведомлению с верной подписью Token.
-import { json, errJson, wrap, asInt, readOrders, mutateOrders, rateLimit, clientIp, tbankToken, nowRu, notify, bankPost, tryJson } from './_lib.js';
+import { json, errJson, wrap, asInt, readOrders, mutateOrders, rateLimit, clientIp, tbankToken, nowRu, notify, bankPost, tryJson, DN } from './_lib.js';
 
 // Боевой домен по документации — securepay.tinkoff.ru (бренд Т-Банк, домен банка
 // прежний). Тестовая среда: TBANK_API_URL=https://rest-api-test.tinkoff.ru/v2
@@ -31,6 +31,11 @@ const handle = wrap(async req => {
   const o = (await readOrders()).find(x => x && x.id === id && x.k === k);
   if (!o) return errJson(404, 'Заявка не найдена');
   if (o.status !== 'Ожидает оплаты') return errJson(400, 'Запись уже оплачена или закрыта');
+  // оплата только после принятия документов (договор, политика, согласие):
+  // запись создаётся с acc на сервере, а заказы без согласий (созданные до
+  // введения галочек) сначала проходят /api/order action:'accept'
+  const accOk = Array.isArray(o.acc) && ['contract', 'privacy', 'consent'].every(dk => o.acc.some(a => a && a.doc === DN[dk]));
+  if (!accOk) return errJson(400, 'Сначала подтвердите согласие с документами');
   // платим первый платёж, если фотограф его задал, иначе полную цену
   const amount = o.first != null && o.first > 0 ? o.first : o.total;
   if (!(amount > 0)) return errJson(400, 'Размер платежа определит фотограф — мы сообщим отдельно');

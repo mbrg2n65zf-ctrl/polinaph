@@ -327,12 +327,30 @@ async function submitBook(){
 // Кнопка показывается всегда, когда известна сумма первого платежа. Сервер /api/pay
 // возвращает платёжную ссылку банка; если ключи эквайринга в Vercel не заданы, он
 // отвечает {stub:true} — посетителю мягко сообщают, что оплата временно недоступна.
+// Оплата возможна только после принятия документов: заказам, созданным до введения
+// галочек (или вне формы записи), кнопка сначала показывает согласие (accModal) —
+// сервер (/api/order, действие accept) фиксирует версии документов, и лишь потом
+// открывается банк. /api/pay без acc платежи тоже отклоняет.
 function payBlock(o){return o.first==null?'<p class="mut">Размер платежа определит фотограф — мы сообщим.</p>':`<button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} картой</button>`}
+const hasAcc=o=>!!o.acc&&['contract','privacy','consent'].every(k=>o.acc.some(a=>a&&a.doc==DN[k]));
+function accModal(o){modal(`<h2>Подтвердите документы</h2><p class="mut">Перед оплатой нужно принять документы съёмки — то же согласие, что и при записи.</p>
+ <div class="ck"><input type="checkbox" id="a1"><label>Я ознакомился с ${docLink('contract')} и подтверждаю запись</label></div>
+ <div class="ck"><input type="checkbox" id="a2"><label>Я прочитал ${docLink('privacy')}</label></div>
+ <div class="ck"><input type="checkbox" id="a3"><label>Даю ${docLink('consent')} (отдельное согласие)</label></div>
+ <button class="btn" onclick="payAccept(${o.id})">Принять и продолжить оплату</button>`)}
+async function payAccept(id){
+ if(!['a1','a2','a3'].every(i=>$('#'+i).checked))return toast('Подтвердите все три пункта (галочки не ставятся заранее)');
+ const o=ord(id);if(!o)return;
+ const was=o.acc;o.acc=['contract','privacy','consent'].map(k=>({doc:DN[k],ver:D.docs[k].at(-1).v,at:now(),how:'чекбокс перед оплатой'}));
+ if(SRV){try{await api('/api/order',{method:'POST',auth:false,body:{action:'accept',id,k:o.k}})}catch(e){o.acc=was;return toast(e.message||'Не удалось сохранить согласие — попробуйте ещё раз')}}
+ else save();
+ closeM();toast('Документы подтверждены');pay(id)}
 // пока посетитель платит на странице банка, тихо опрашиваем свою запись: вебхук
 // банка обновит статус на сервере, и карточка сама покажет «Оплачен…» (до 2 минут)
 const pollPay=(id,k,n)=>{const tick=async m=>{if(m<=0)return;const cur=ord(id);if(!cur)return;try{const r=await api('/api/order?id='+id,{auth:false,headers:{'X-Order-Key':k}});if(r.order&&(r.order.status!=cur.status||(r.order.paid||0)!=(cur.paid||0))){Object.assign(cur,r.order);render();return}}catch(e){}setTimeout(()=>tick(m-1),5000)};setTimeout(()=>tick(n||24),5000)};
 async function pay(id){
  const o=ord(id);if(!o)return;
+ if(!hasAcc(o)){accModal(o);return}
  if(!SRV){o.paid=o.first;o.pay='Оплачен картой';o.status='Оплачен, ожидает консультации';log(o,'Оплата картой '+rub(o.first)+' (демо без сервера)');save();closeM();toast('Оплата выполнена');render();return}
  if(window.PAYING)return;window.PAYING=1;
  try{const r=await api('/api/pay',{method:'POST',auth:false,body:{id,k:o.k}});

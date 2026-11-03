@@ -4,6 +4,9 @@
 // POST {action:'create'}   — клиент записывается на анонс фото дня (цена и даты —
 //                            только серверные, из анонса; подменить нельзя).
 // POST {action:'mine'}     — «мои записи» клиента по подписанному initData.
+// POST {action:'accept'}   — фиксация согласия с документами перед оплатой
+//                            (по номеру заявки и секрету k; версии документов
+//                            берутся из серверного состояния, клиенту верить нельзя).
 // POST {action:'admin'}    — сохранение правок записи (только токен фотографа).
 // POST {action:'delete'}   — удаление заявок по списку id (только токен фотографа).
 // Оплата вынесена в /api/pay (старт платежа) и /api/pay-webhook (уведомление банка).
@@ -123,6 +126,40 @@ const handle = wrap(async req => {
     if (!user || !user.id) return errJson(401, 'Не удалось подтвердить Telegram-аккаунт');
     const list = (await readOrders()).filter(o => o && o.user && o.user.id === user.id);
     return json({ ok: true, orders: list.map(publicOrder) });
+  }
+
+  // ——— фиксация согласия с документами перед оплатой ————————————————————————————
+  // Заказы, созданные до введения обязательных галочек (или вне формы записи), могут
+  // остаться без acc — блокировать их нельзя, но и платить «вслепую» нельзя. Клиент
+  // показывает те же три галочки, а сервер подтверждённые версии документов записывает
+  // сам: какие документы и в какой редакции приняты, решает сервер, не фронт.
+  if (body.action === 'accept') {
+    if (!rateLimit('accept:' + clientIp(req), 30, 60 * 60 * 1000)) return errJson(429, 'Слишком много запросов — попробуйте позже');
+    const id = asInt(body.id);
+    const k = asStr(body.k, 64);
+    if (!id || !K_RE.test(k)) return errJson(400, 'Некорректная ссылка на заявку');
+    const st = await readState();
+    const docs = st && st.docs && typeof st.docs === 'object' ? st.docs : defaultDocs();
+    const acc = ['contract', 'privacy', 'consent'].map(dk => {
+      const list = Array.isArray(docs[dk]) ? docs[dk] : [];
+      const last = list[list.length - 1];
+      return { doc: DN[dk], ver: last ? (asInt(last.v) ?? 1) : 1, at: nowRu(), how: 'чекбокс перед оплатой' };
+    });
+    let found = false;
+    await mutateOrders(orders => {
+      const o = orders.find(x => x && x.id === id && x.k === k);
+      if (!o) return null;
+      found = true;
+      const missing = !Array.isArray(o.acc) || !['contract', 'privacy', 'consent'].every(dk => o.acc.some(a => a && a.doc === DN[dk]));
+      if (missing) {
+        o.acc = acc;
+        o.log = o.log || [];
+        o.log.unshift(nowRu() + ' — Перед оплатой подтверждены документы (версии зафиксированы)');
+      }
+      return again => again.some(x => x && x.id === id && x.k === k);
+    });
+    if (!found) return errJson(404, 'Заявка не найдена');
+    return json({ ok: true });
   }
 
   // ——— сохранение правок заявки админкой ————————————————————————————————————————
