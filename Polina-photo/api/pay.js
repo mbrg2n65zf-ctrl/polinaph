@@ -4,13 +4,15 @@
 // РЕЖИМ ЗАГЛУШКИ: пока в переменных окружения Vercel не заданы TBANK_TERMINAL_KEY
 // и TBANK_TERMINAL_PASSWORD, эндпоинт отвечает {stub:true} — фронт показывает
 // «оплата скоро подключится», интерфейс уже готов. Когда ключи добавлены, этот же
-// запрос создаёт платёж в банке (POST https://securepay.tbank.ru/v2/Init) и
+// запрос создаёт платёж (POST /v2/Init — developer.tbank.ru/eacq/api/init) и
 // возвращает {paymentURL} — платёжную форму открывает клиент.
-// Статус оплаты приходит отдельно на /api/pay-webhook (NotificationURL в ЛК банка):
-// доверять финальному статусу можно только уведомлению с верной подписью Token.
+// Статус оплаты приходит отдельно на /api/pay-webhook (NotificationURL): доверять
+// финальному статусу можно только уведомлению с верной подписью Token.
 import { json, errJson, wrap, asInt, readOrders, mutateOrders, rateLimit, clientIp, tbankToken, nowRu, notify } from './_lib.js';
 
-const INIT_URL = 'https://securepay.tbank.ru/v2/Init';
+// Боевой домен по документации — securepay.tinkoff.ru (бренд Т-Банк, домен банка
+// прежний). Тестовая среда: TBANK_API_URL=https://rest-api-test.tinkoff.ru/v2
+// (потребуется внести IP сервера в белый список — см. README).
 const K_RE = /^[a-f0-9]{32}$/;
 
 const handle = wrap(async req => {
@@ -34,18 +36,25 @@ const handle = wrap(async req => {
   if (!(amount > 0)) return errJson(400, 'Размер платежа определит фотограф — мы сообщим отдельно');
 
   const origin = new URL(req.url).origin;
+  // OrderId должен быть уникальным для каждой операции (требование банка), поэтому
+  // к номеру записи добавляем суффикс попытки; вебхук сопоставляет заявку по
+  // ведущему числу. Повторное «Оплатить» создаёт новую попытку — прежняя просто
+  // останется неоплаченной и истечёт сама.
+  const orderId = id + '-' + Date.now().toString(36);
   const init = {
     TerminalKey: terminal,
     Amount: Math.round(amount * 100), // банк принимает сумму в копейках
-    OrderId: String(id), // повторный Init с тем же OrderId банк связывает с этим же платежом
+    OrderId: orderId,
     Description: ('Фото день: ' + (o.svc || 'съёмка') + ', запись №' + id).slice(0, 140),
+    // уведомление о статусе шлём на наш вебхук даже без настроек в ЛК банка
+    NotificationURL: process.env.TBANK_NOTIFICATION_URL || origin + '/api/pay-webhook',
     SuccessURL: process.env.TBANK_SUCCESS_URL || origin + '/',
     FailURL: process.env.TBANK_FAIL_URL || origin + '/',
   };
   const payload = { ...init, Token: tbankToken(init, password) };
   let resp;
   try {
-    resp = await fetch(INIT_URL, {
+    resp = await fetch(process.env.TBANK_API_URL || 'https://securepay.tinkoff.ru/v2/Init', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -62,13 +71,14 @@ const handle = wrap(async req => {
     return errJson(502, 'Банк отклонил создание платежа' + detail);
   }
 
-  // фиксируем PaymentId, чтобы сопоставлять вебхуки с заявкой; сбой записи
-  // не должен мешать переходу на оплату — статус всё равно придёт вебхуком
+  // фиксируем PaymentId и OrderId попытки, чтобы сопоставлять вебхуки с заявкой;
+  // сбой записи не должен мешать переходу на оплату — статус всё равно придёт вебхуком
   const payId = String(data.PaymentId || '');
   if (payId) await mutateOrders(list => {
     const x = list.find(y => y && y.id === id && y.k === k);
     if (!x) return null;
     x.payId = payId;
+    x.payOrderId = orderId;
     x.pay = 'Ожидает оплаты (Т-Банк)';
     x.log = x.log || [];
     x.log.unshift(nowRu() + ' — Создан платёж в Т-Банке (PaymentId ' + payId + '), сумма ' + amount + ' ₽');

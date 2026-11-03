@@ -54,6 +54,21 @@ async function handler(req) {
       hint: 'выключены: задайте в Vercel TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID, чтобы получать новые заявки в личку от бота, затем Redeploy',
     });
   }
+  // Эквайринг Т-Банка: здоровы оба состояния — ключи заданы (оплата картой) и
+  // оба не заданы (честная заглушка). «Наполовину» (одна переменная без второй) —
+  // неисправность: фотограф думает, что оплату включил, а /api/pay молчит заглушкой.
+  const tk = process.env.TBANK_TERMINAL_KEY || '';
+  const tpw = process.env.TBANK_TERMINAL_PASSWORD || '';
+  checks.push({
+    name: 'Эквайринг Т-Банка — оплата картой (необязательно)',
+    ok: !!(tk && tpw) || (!tk && !tpw),
+    optional: true,
+    hint: tk && tpw
+      ? 'включён — кнопка «Оплатить картой» создаёт платежи (терминал ' + tk.slice(0, 3) + '…). Убедитесь, что в личном кабинете эквайринга указан NotificationURL — адрес /api/pay-webhook на вашем домене: без него статусы оплат не обновляются автоматически'
+      : tk || tpw
+        ? 'настроен наполовину: задан только ' + (tk ? 'TerminalKey, пароль терминала отсутствует' : 'пароль терминала, TerminalKey отсутствует') + ' — оплата пока работает как заглушка. Добавьте вторую переменную в Vercel → Environment Variables, затем Redeploy'
+        : 'не подключён: кнопка оплаты показывает посетителю «оплата скоро подключится», деньги не списываются. Чтобы принимать карты, задайте в Vercel TBANK_TERMINAL_KEY и TBANK_TERMINAL_PASSWORD, затем Redeploy',
+  });
   const ok = checks.every((c) => c.ok);
   if (!checkToken(req)) return json({ ok });
   return json({ ok, checks });

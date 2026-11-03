@@ -1,5 +1,6 @@
-// /api/pay-webhook — уведомление Т-Банка о статусе платежа (NotificationURL, его
-// указывают в личном кабинете интернет-эквайринга: https://<домен>/api/pay-webhook).
+// /api/pay-webhook — уведомление Т-Банка о статусе платежа (NotificationURL).
+// Адрес передаётся в каждом запросе Init (origin + /api/pay-webhook) и может быть
+// дополнительно указан в личном кабинете эквайринга.
 //
 // Банк присылает параметры платежа (OrderId, Amount в копейках, Status, Success,
 // PaymentId …) и подпись Token — SHA-256 по алгоритму из tbankToken. Запрос без
