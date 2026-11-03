@@ -38,6 +38,21 @@ const handle = wrap(async req => {
     if (ext === 'pdf' && buf.subarray(0, 5).toString('latin1') !== '%PDF-') {
       return errJson(400, 'Файл не похож на PDF');
     }
+    // Проверка структуры контейнера, а не только расширения (рекомендация аудита):
+    // DOCX/ODT — это ZIP-архивы, DOC — OLE2-контейнер, RTF — текст с \rtf в начале.
+    // Проверяем и локальный заголовок, и наличие центрального каталога ZIP (EOCD
+    // в последних 64 КБ) — файл, обрезанный или с чужим содержимым, не пройдёт.
+    const sig = (arr) => arr.every((b, i) => buf[i] === b);
+    if (ext === 'docx' || ext === 'odt') {
+      const zipStart = sig([0x50, 0x4B, 0x03, 0x04]); // "PK\x03\x04"
+      const tail = buf.subarray(Math.max(0, buf.length - 65536));
+      const eocd = tail.lastIndexOf(Buffer.from([0x50, 0x4B, 0x05, 0x06])); // EOCD
+      if (!zipStart || eocd < 0) return errJson(400, 'Файл не похож на документ Office (это не ZIP-контейнер)');
+    } else if (ext === 'doc') {
+      if (!sig([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1])) return errJson(400, 'Файл не похож на документ Word');
+    } else if (ext === 'rtf') {
+      if (!buf.subarray(0, 5).toString('latin1').startsWith('{\\rtf')) return errJson(400, 'Файл не похож на RTF');
+    }
   }
 
   await blobPut(p, buf, ctypeOf(p));

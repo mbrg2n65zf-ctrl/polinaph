@@ -38,8 +38,20 @@ export const nowRu = () => new Date().toLocaleString('ru-RU', { timeZone: 'Europ
 
 // ——— токен фотографа: "<срок_действия_ms>.<HMAC-подпись>" ———————————————————
 // Фронтенд разбирает этот формат (проверяет срок по части до точки).
-const TOKEN_TTL = 30 * 24 * 60 * 60 * 1000; // 30 дней
-const secretKey = () => process.env.ADMIN_SECRET || process.env.ADMIN_PASSWORD || '';
+// TTL 7 дней: чем короче сессия, тем меньше окно у украденного токена
+// (рекомендация аудита; вход повторяется раз в неделю — приемлемая цена).
+const TOKEN_TTL = 7 * 24 * 60 * 60 * 1000;
+// Ключ подписи токенов: отдельная переменная ADMIN_SECRET (рекомендация аудита).
+// Если она не задана, используется производный ключ SHA-256 с доменной привязкой,
+// но НИКОГДА не сам ADMIN_PASSWORD: пароль входа не должен одновременно быть
+// HMAC-ключом. Смена схемы подписи делает старые токены недействительными —
+// это же механизм принудительного выхода всех сессий (поменять секрет → все разлогинены).
+const secretKey = () => {
+  const s = process.env.ADMIN_SECRET;
+  if (s) return s;
+  const pw = process.env.ADMIN_PASSWORD || '';
+  return pw ? createHash('sha256').update('photographer-tma:admin-session:' + pw).digest('hex') : '';
+};
 const tokenSig = exp => createHmac('sha256', secretKey()).update('t' + exp).digest('hex');
 export const makeToken = () => {
   const exp = String(Date.now() + TOKEN_TTL);
@@ -153,7 +165,9 @@ export async function readState() {
     if (!e || typeof e !== 'object') return e;
     // фото анонса — массив id; старые записи с одиночным img мигрируют на месте
     const photos = Array.isArray(e.photos) && e.photos.length ? e.photos.map(String) : (e.img ? [String(e.img)] : []);
-    return { ...e, photos, img: undefined };
+    // описание чистится richText() и при чтении: в Blob могли остаться записи,
+    // сохранённые старой версией сайта без полной санитизации (Stored XSS)
+    return { ...e, d: richText(e.d), photos, img: undefined };
   });
   const def = st.set && typeof st.set === 'object' ? asStr(st.set.def, 20) : '';
   st.set = { def: CITIES[def] ? def : '' }; // город первой страницы сайта
@@ -284,7 +298,50 @@ export function sanitizePub(pub) {
     ['mp4', 'webm', 'mov'].includes(pub.PH.video.ext)
     ? { id: pub.PH.video.id, ext: pub.PH.video.ext } : null;
 
-  return { ev, docs, PH: { s, hero: phId(pub.PH.hero) ? pub.PH.hero : '', video, q: Math.min(1e12, asInt(pub.PH.q) ?? 1) }, set: { def: CITIES[defCity] ? defCity : '' } };
+  // текст шапки главной страницы (надпись над именем, две строки имени, подзаголовок):
+  // обычные строки без разметки, угловые скобки удаляются — клиент выводит их как текст.
+  // Поле отсутствует, пока фотограф не отредактировал хотя бы одно из значений:
+  // тогда клиент показывает стандартный текст.
+  const bs = pub.PH.brand && typeof pub.PH.brand === 'object' && !Array.isArray(pub.PH.brand) ? pub.PH.brand : null;
+  const plain = (v, max) => asStr(v, max).replace(/[<>]/g, '');
+  const brand = bs ? {
+    kicker: plain(bs.kicker, 60),
+    n1: plain(bs.n1, 40),
+    n2: plain(bs.n2, 40),
+    sub: plain(bs.sub, 300),
+  } : null;
+
+  // ссылки на соцсети фотографа (кружки в шапке): только https-адреса домена
+  // соответствующей сети (те же списки, что в клиенте, — править синхронно) и путь
+  // из печатных ASCII-символов; всё непохожее отбрасывается, а не валит сохранение.
+  const socIn = pub.PH.soc && typeof pub.PH.soc === 'object' && !Array.isArray(pub.PH.soc) ? pub.PH.soc : null;
+  const SOC_HOSTS = {
+    ig: ['instagram.com', 'instagr.am', 'ig.me'],
+    tg: ['t.me', 'telegram.me', 'telegram.dog'],
+    vk: ['vk.com', 'vk.ru', 'vkontakte.ru', 'vk.me'],
+    mx: ['max.ru'],
+    wa: ['wa.me', 'api.whatsapp.com', 'chat.whatsapp.com', 'whatsapp.com'],
+  };
+  const socOk = (k, v) => {
+    if (typeof v !== 'string' || v.length > 200) return false;
+    const m = v.match(/^https:\/\/([A-Za-z0-9.-]+)(:\d{2,5})?(\/[!-~]*)?$/);
+    if (!m) return false;
+    const host = m[1].toLowerCase().replace(/^www\./, '');
+    if (!(SOC_HOSTS[k] || []).includes(host)) return false;
+    if (k === 'wa' && host === 'wa.me' && !/^\/\d{6,15}(\?[!-~]*)?$/.test(m[3] || '')) return false;
+    return true;
+  };
+  let soc = null;
+  if (socIn) {
+    const o = {};
+    for (const k of ['ig', 'tg', 'vk', 'mx', 'wa']) {
+      const v = String(socIn[k] ?? '').trim();
+      if (v && socOk(k, v)) o[k] = v;
+    }
+    if (Object.keys(o).length) soc = o;
+  }
+
+  return { ev, docs, PH: { s, hero: phId(pub.PH.hero) ? pub.PH.hero : '', video, q: Math.min(1e12, asInt(pub.PH.q) ?? 1), ...(brand ? { brand } : {}), ...(soc ? { soc } : {}) }, set: { def: CITIES[defCity] ? defCity : '' } };
 }
 
 export function sanitizeRef(ref) {
@@ -361,7 +418,9 @@ export function verifyInitData(initData, botToken) {
     params.delete('signature');
     const dcs = [...params.entries()].map(([k, v]) => `${k}=${v}`).sort().join('\n');
     const authDate = Number(params.get('auth_date'));
-    if (!Number.isFinite(authDate) || Date.now() / 1000 - authDate > 86400) return null; // старше суток — не доверяем
+    // окно доверия: не старше суток И не из будущего (допуск 60 с на расхождение часов)
+    const now = Math.floor(Date.now() / 1000);
+    if (!Number.isFinite(authDate) || authDate > now + 60 || now - authDate > 86400) return null;
     const secret = createHmac('sha256', 'WebAppData').update(botToken).digest();
     const calc = createHmac('sha256', secret).update(dcs).digest('hex');
     const good = Buffer.from(calc, 'hex');

@@ -1,10 +1,12 @@
 // /api/order — работа с одной записью (заявкой).
-// GET  ?id=&k=             — клиент читает свою запись по номеру и секретному ключу k.
+// GET  ?id=  (секрет k — в заголовке X-Order-Key)
+//                            — клиент читает свою запись по номеру и секретному ключу k.
 // POST {action:'create'}   — клиент записывается на анонс фото дня (цена и даты —
 //                            только серверные, из анонса; подменить нельзя).
 // POST {action:'pay'}      — тестовая оплата по id + k.
 // POST {action:'mine'}     — «мои записи» клиента по подписанному initData.
 // POST {action:'admin'}    — сохранение правок записи (только токен фотографа).
+// POST {action:'delete'}   — удаление заявок по списку id (только токен фотографа).
 import { json, errJson, wrap, asStr, asInt, asNum, checkToken, readState, readOrders, mutateOrders, rateLimit, clientIp,
          sanitizeOrder, publicOrder, DN, CITIES, defaultDocs, nowRu, verifyInitData, notify } from './_lib.js';
 import { randomBytes } from 'node:crypto';
@@ -16,8 +18,12 @@ const handle = wrap(async req => {
 
   // ——— чтение заявки клиентом ————————————————————————————————————————————————
   if (req.method === 'GET') {
+    // Секрет k передаётся в заголовке X-Order-Key, а не в query string: URL без
+    // секрета не оседает в журналах сервера, истории браузера и аналитике
+    // (рекомендация аудита). Клиент шлёт заголовок с того же источника.
+    if (!rateLimit('ordget:' + clientIp(req), 60, 60 * 60 * 1000)) return errJson(429, 'Слишком много запросов — попробуйте позже');
     const id = asInt(url.searchParams.get('id'));
-    const k = String(url.searchParams.get('k') || '');
+    const k = String(req.headers.get('x-order-key') || '');
     if (!id || !K_RE.test(k)) return errJson(400, 'Некорректная ссылка на заявку');
     const o = (await readOrders()).find(x => x.id === id && x.k === k);
     if (!o) return errJson(404, 'Заявка не найдена');
@@ -34,8 +40,9 @@ const handle = wrap(async req => {
   // заданных фотографом (ev.dates), цену считает СЕРВЕР из анонса — подменить нельзя.
   if (body.action === 'create') {
     // приём записей открыт без пароля — ограничиваем частоту с одного IP (анти-спам);
-    // лимит щедрый: мобильные операторы прячут много клиентов за одним адресом
-    if (!rateLimit('order:' + clientIp(req), 120, 60 * 60 * 1000)) return errJson(429, 'Слишком много записей с одного адреса — попробуйте позже');
+    // 20/час хватает с запасом: живой клиент делает 1–3 заявки, а мобильные операторы
+    // прячут много людей за одним адресом (аудит: прежние 120/час избыточны)
+    if (!rateLimit('order:' + clientIp(req), 20, 60 * 60 * 1000)) return errJson(429, 'Слишком много записей с одного адреса — попробуйте позже');
     const o = (body.order && typeof body.order === 'object') ? body.order : {};
     const name = asStr(o.name, 120), contact = asStr(o.contact, 200),
           date = asStr(o.date, 40), time = asStr(o.time, 60), com = asStr(o.com, 2000);
@@ -62,7 +69,9 @@ const handle = wrap(async req => {
     const user = verifyInitData(asStr(o.tg, 4096), process.env.TELEGRAM_BOT_TOKEN);
 
     const total = Math.max(0, asNum(ev.price) ?? 0);
-    const first = ev.pre == null ? total : Math.max(0, asNum(ev.pre) ?? 0);
+    // предоплата засчитывается только когда она меньше полной цены (зеркалит логику книги записи)
+    const preN = asNum(ev.pre);
+    const first = preN != null && preN > 0 && preN < total ? preN : total;
     const city = CITIES[ev.city] || 'Москва';
     const orders = await readOrders();
     const id = orders.reduce((m, x) => Math.max(m, asInt(x && x.id) ?? 0), 0) + 1;
@@ -100,7 +109,7 @@ const handle = wrap(async req => {
   // подпись, сервер уверен, что перед ним владелец аккаунта, и отдаёт только его
   // заявки — с любого устройства. Без валидной подписи список не выдаётся.
   if (body.action === 'mine') {
-    if (!rateLimit('mine:' + clientIp(req), 120, 60 * 60 * 1000)) return errJson(429, 'Слишком много запросов — попробуйте позже');
+    if (!rateLimit('mine:' + clientIp(req), 60, 60 * 60 * 1000)) return errJson(429, 'Слишком много запросов — попробуйте позже');
     const user = verifyInitData(asStr(body.tg, 4096), process.env.TELEGRAM_BOT_TOKEN);
     if (!user || !user.id) return errJson(401, 'Не удалось подтвердить Telegram-аккаунт');
     const list = (await readOrders()).filter(o => o && o.user && o.user.id === user.id);
@@ -109,6 +118,8 @@ const handle = wrap(async req => {
 
   // ——— тестовая оплата клиентом (по id + секретному ключу) ——————————————————————
   if (body.action === 'pay') {
+    // лимит против спама платежами: каждая попытка дёргает уведомление фотографу
+    if (!rateLimit('pay:' + clientIp(req), 30, 60 * 60 * 1000)) return errJson(429, 'Слишком много попыток оплаты — попробуйте позже');
     const id = asInt(body.id);
     const k = String(body.k || '');
     if (!id || !K_RE.test(k)) return errJson(400, 'Некорректный запрос');
@@ -145,6 +156,24 @@ const handle = wrap(async req => {
       return again => again.some(x => x.id === id);
     });
     return json({ ok: true });
+  }
+
+  // ——— удаление заявок фотографом (одиночное и массовое) ———————————————————————————
+  // Удалённая заявка исчезает и у клиента: «Мои заявки» строятся из этого же списка,
+  // а прямое чтение по id+k отвечает 404 — клиент вычищает такой ярлык с устройства.
+  if (body.action === 'delete') {
+    if (!checkToken(req)) return errJson(401, 'Требуется вход фотографа');
+    const ids = [...new Set((Array.isArray(body.ids) ? body.ids : []).map(asInt).filter(Boolean))].slice(0, 500);
+    if (!ids.length) return errJson(400, 'Укажите номера заявок для удаления');
+    const del = new Set(ids);
+    let removed = 0;
+    await mutateOrders(orders => {
+      const keep = orders.filter(o => !del.has(asInt(o && o.id) ?? 0));
+      removed = orders.length - keep.length;
+      orders.splice(0, orders.length, ...keep);
+      return again => again.length === keep.length;
+    });
+    return json({ ok: true, removed });
   }
 
   return errJson(400, 'Неизвестное действие');

@@ -13,6 +13,11 @@ const handle = wrap(async req => {
   try {
     const buf = await blobGet(p); // фото/документы неизменяемы по своим путям — кэш разрешён
     const fname = p.split('/').pop();
+    // Офисные документы отдаём как вложение (attachment), а не для показа в браузере:
+    // их место — скачивание, и так исключён любой рендер содержимого в контексте сайта
+    // (рекомендация аудита). PDF и медиа остаются inline: их показывают в окне.
+    const ext = p.split('.').pop().toLowerCase();
+    const disp = p.toLowerCase().startsWith('docs/') && ext !== 'pdf' ? 'attachment' : 'inline';
     return new Response(req.method === 'HEAD' ? null : buf, {
       status: 200,
       headers: {
@@ -20,7 +25,7 @@ const handle = wrap(async req => {
         'Content-Length': String(buf.length),
         'Cache-Control': 'public, max-age=31536000, immutable',
         'X-Content-Type-Options': 'nosniff',
-        'Content-Disposition': `inline; filename="${fname}"`,
+        'Content-Disposition': `${disp}; filename="${fname}"`,
       },
     });
   } catch (e) {

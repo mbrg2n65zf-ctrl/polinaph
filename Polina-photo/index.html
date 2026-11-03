@@ -56,7 +56,12 @@ input,select,textarea{border-radius:0;background:#fff}
 h1{font-size:clamp(27px,10.5vw,40px);overflow-wrap:break-word}
 a.btn{text-decoration:none}
 .err{color:#b3261e;font-size:14px;min-height:20px;margin:2px 0}
-#up{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));right:max(16px,calc(50vw - 264px));width:48px;height:48px;border-radius:50%;border:0;background:rgba(22,22,22,.5);color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:grid;place-items:center;cursor:pointer;z-index:25;opacity:0;pointer-events:none;transition:opacity .2s}#up.on{opacity:1;pointer-events:auto}
+/* Кружки-ссылки на соцсети в шапке: тонкое кольцо и фирменный цвет значка,
+   при нажатии кружок заливается цветом сети. */
+.soc{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:14px 0 2px}
+.soc-cap{font:500 13px Manrope,Inter,system-ui,sans-serif;color:var(--mut)}
+.soc-b{width:42px;height:42px;border-radius:50%;border:1px solid var(--bd);background:var(--card);color:var(--c);display:grid;place-items:center;cursor:pointer;text-decoration:none;transition:transform .15s,background .15s,color .15s,border-color .15s}
+.soc-b:hover,.soc-b:active{background:var(--c);border-color:var(--c);color:#fff;transform:translateY(-1px)}
 h1,h2{font-family:Manrope,Inter,system-ui,sans-serif;letter-spacing:-.025em}
 h1{font-size:40px;font-weight:700;line-height:1.05;margin:0 0 14px}
 h2{font-size:22px;font-weight:600;margin:30px 0 8px}
@@ -67,7 +72,10 @@ h2{font-size:22px;font-weight:600;margin:30px 0 8px}
 .hero{position:relative;margin:22px -20px 0;aspect-ratio:4/5;overflow:hidden;background:linear-gradient(170deg,#f1ebe4,#d8cbc0)}
 .hero video,.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .hero .hi{position:absolute;left:0;right:0;bottom:0;padding:24px 16px 10px;background:linear-gradient(transparent,rgba(0,0,0,.55));color:#fff;font-size:12px}
-.cityrow{display:flex;gap:20px;align-items:center;margin:2px 0 0}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--bd);border-radius:999px;padding:3px;gap:2px;margin:6px 0 2px}
+.seg button{border:0;background:none;color:var(--mut);border-radius:999px;padding:0 16px;min-height:34px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.seg button.on{background:var(--ac);color:var(--on)}
+.seg button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .pr{font:600 24px/1.25 Manrope,Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
 .dates{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .dates span{border:1px solid var(--bd);border-radius:8px;padding:3px 9px;font-size:13px;font-variant-numeric:tabular-nums}
@@ -85,12 +93,18 @@ h2{font-size:22px;font-weight:600;margin:30px 0 8px}
 .evdots i{width:6px;height:6px;border-radius:50%;background:var(--bd);transition:background .15s}
 .evdots i.on{background:var(--fg)}
 @media(max-width:370px){.evgal .sl{max-height:min(480px,68vh)}}
+.of{border-collapse:collapse;width:100%;font-size:13px;margin:4px 0}
+.of th,.of td{border-bottom:1px solid var(--bd);padding:6px 7px;text-align:left;white-space:nowrap;vertical-align:top}
+.of th{font-size:12px;color:var(--mut);font-weight:500}
+.of th[role=button]{cursor:pointer;user-select:none}
+.of .nw{font-variant-numeric:tabular-nums}
+.of td input[type=checkbox]{width:auto;margin:0;vertical-align:middle}
+.of tr.det>td{white-space:normal;min-width:340px}
 </style><meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head><body>
 <noscript><p style="padding:20px">Для работы сайта нужен JavaScript.</p></noscript><div id="top"></div><nav id="nav"></nav><main id="app"></main><div id="modal"></div><div id="modal2"></div><div id="toast"></div>
-<button id="up" aria-label="Наверх" onclick="toTop()"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 18V5M5 10.5 11 4.5l6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <div id="vw" role="dialog" aria-modal="true" aria-label="Фотографии" style="display:none"><div class="vh"><button class="vbk" onclick="vwClose()" aria-label="Назад">←</button><b id="vtt">Фото</b></div><div id="vfeed"></div></div>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -122,7 +136,7 @@ const ADM_OK=/admin/.test(location.hash+location.search)||TGSP=='admin';
 const ADMIN_PAGE=/^\/admin\/?$/.test(location.pathname)||TGSP=='admin'||/[?&]tgWebAppStartParam=admin(&|$)/.test(location.search)||(location.protocol!='file:'&&/admin/.test(location.hash+location.search)),TGDATA=()=>{try{return Telegram.WebApp.initData||''}catch(e){return ''}};
 let BOOT=location.protocol=='file:'?'':'load',BOOTERR='',SUBM=false;
 try{document.execCommand('defaultParagraphSeparator',false,'p')}catch(e){} // Enter в редакторе описания делает абзац
-let st={tab:ADMIN_PAGE?'adm':'port',city:(()=>{if(D.set&&CITIES[D.set.def])return D.set.def;try{return localStorage.getItem('pk_city')=='gel'?'gel':'msk'}catch(e){return 'msk'}})(),bdate:null,ev:null,adm:false,at:'ord',ucity:false};
+let st={tab:ADMIN_PAGE?'adm':'port',city:(()=>{if(D.set&&CITIES[D.set.def])return D.set.def;try{return localStorage.getItem('pk_city')=='gel'?'gel':'msk'}catch(e){return 'msk'}})(),bdate:null,ev:null,adm:false,at:'ord',ucity:false,of:{q:'',stt:'',city:'',d1:'',d2:'',sk:'id',sd:-1,open:{},sel:{}}};
 let SRV=false,PERR='',TOKEN=(()=>{try{const t=localStorage.getItem('pk_tok')||'';return +t.split('.')[0]>Date.now()?t:''}catch(e){return ''}})();
 const MYK='pk_my',myList=()=>{try{return JSON.parse(localStorage.getItem(MYK))||[]}catch(e){return[]}};
 const fileUrl=p=>'/api/file?p='+encodeURIComponent(p);
@@ -148,6 +162,8 @@ function applyState(p){
  PH=p.PH&&typeof p.PH=='object'?p.PH:{};
  PH.s=Array.isArray(PH.s)?PH.s:[];PH.hero=typeof PH.hero=='string'?PH.hero:'';PH.q=+PH.q||1;
  PH.video=PH.video&&PH.video.id?{id:PH.video.id,ext:PH.video.ext||'mp4'}:null;
+ // ссылки на соцсети фотографа (кружки в шапке): строго объект со строками
+ PH.soc=PH.soc&&typeof PH.soc=='object'&&!Array.isArray(PH.soc)?PH.soc:null;
  for(const x of PH.s)if(x&&x.id)IMG[x.id]=fileUrl('photos/'+x.id+'.jpg')}
 async function loadMine(){
  // Свои записи: по подписанному Telegram initData — видны на любом устройстве,
@@ -156,7 +172,13 @@ async function loadMine(){
  let tg=[];
  const d=TGDATA();
  if(SRV&&d){try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'mine',tg:d}});if(r&&Array.isArray(r.orders))tg=r.orders}catch(e){}}
- const dev=(await Promise.all(myList().map(m=>api('/api/order?id='+m.id+'&k='+m.k,{auth:false}).then(r=>r.order).catch(()=>null)))).filter(Boolean);
+ // Ярлык записи, удалённой фотографом, отвечает 404 — вычищаем его с устройства,
+ // чтобы «Мои заказы» освободились сразу, а не хранили мёртвые ссылки.
+ const dev=[],stale=[];
+ for(const m of myList()){
+  try{const r=await api('/api/order?id='+m.id,{auth:false,headers:{'X-Order-Key':m.k}});dev.push(r.order)}
+  catch(e){if(/не найдена/i.test(String(e&&e.message)))stale.push(m.id)}}
+ if(stale.length){try{localStorage.setItem(MYK,JSON.stringify(myList().filter(m=>!stale.includes(m.id))))}catch(e){}}
  const seen={},all=[];
  for(const o of tg.concat(dev))if(o&&!seen[o.id]){seen[o.id]=1;all.push(o)}
  D.ord=all.sort((a,b)=>b.id-a.id)}
@@ -202,7 +224,13 @@ function render(){
  $('#nav').innerHTML=gate?'':T.map(t=>`<button class="${st.tab==t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('');
  $('#app').innerHTML=({port,book,my,adm})[st.tab]()+(gate?'':foot());
 }
+// Соцсети: в макете (file:) подставлены заведомо вымышленные адреса-примеры,
+// чтобы сразу видеть дизайн; на сервере список пуст, пока фотограф не заполнит
+// его во вкладке «Первый экран».
 let PH=(()=>{try{return JSON.parse(localStorage.getItem('pk_ph'))}catch(e){return null}})()||{s:[],hero:'',video:null,q:1};PH.s=Array.isArray(PH.s)?PH.s:[];PH.hero=typeof PH.hero=='string'?PH.hero:'';PH.q=+PH.q||1;PH.video=PH.video&&PH.video.id?{id:PH.video.id,ext:PH.video.ext||'mp4'}:null;
+// В макете кружки сразу видны с вымышленными адресами-примерами; на сервере
+// список пуст, пока фотограф не заполнит его во вкладке «Первый экран».
+if(!PH.soc&&location.protocol=='file:')PH.soc={ig:'https://instagram.com/username',tg:'https://t.me/username',vk:'https://vk.com/username',mx:'https://max.ru/u/username',wa:'https://wa.me/79000000000'};
 const IMG={},VID={};let idb=null;
 const phSave=()=>{if(SRV){if(TOKEN&&st.adm)scheduleSync();return}try{localStorage.setItem('pk_ph',JSON.stringify(PH))}catch(e){toast('Не удалось сохранить список фото')}};
 const idbOpen=()=>new Promise(r=>{try{const q=indexedDB.open('pk_img',1);q.onupgradeneeded=()=>q.result.createObjectStore('i');q.onsuccess=()=>{idb=q.result;r()};q.onerror=()=>r();q.onblocked=()=>r()}catch(e){r()}});
@@ -215,18 +243,15 @@ const vidSrc=()=>{const v=PH.video;if(!v||!v.id)return '';if(SRV)return '/api/fi
 function heroHTML(){
  const src=vidSrc();
  if(src)return `<div class="hero"><video src="${src}" autoplay muted loop playsinline${PH.hero&&IMG[PH.hero]?` poster="${IMG[PH.hero]}"`:''} onerror="this.style.display='none'"></video></div>`;
- if(PH.hero&&IMG[PH.hero])return `<div class="hero"><img src="${IMG[PH.hero]}" alt="Главное фото"><div class="hi">Полина Кушнаренко · фотограф</div></div>`;
+ if(PH.hero&&IMG[PH.hero]){const B=brandEff(),hi=[[B.n1,B.n2].filter(Boolean).join(' '),B.kicker].filter(Boolean).join(' · ');
+  return `<div class="hero"><img src="${IMG[PH.hero]}" alt="Главное фото"><div class="hi">${esc(hi)}</div></div>`}
  return `<div class="hero"><div class="hi" style="position:absolute;left:0;right:0;top:auto;bottom:0">Здесь будет видео или главное фото</div></div>`}
-// ——— города: переключение чипсами и свайпом по списку анонсов —————————————————
+// ——— города: переключение кнопками; горизонтальный свайп не используем —————————
+// (Telegram перехватывает жест «назад» слева-направо и закрывает приложение,
+// отключить этот системный жест из JavaScript нельзя)
 function setCity(c){if(c!=st.city){st.city=c;st.ucity=true;st.bdate=null;try{localStorage.setItem('pk_city',c)}catch(e){}render()}}
-let swX=0,swY=0,swT=0,swGal=false;
-const ptX=e=>e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientX:e.clientX,ptY=e=>e.changedTouches&&e.changedTouches[0]?e.changedTouches[0].clientY:e.clientY;
-function swS(e){swX=ptX(e);swY=ptY(e);swT=Date.now();swGal=!!(e.target&&e.target.closest&&e.target.closest('.evgal'))}
-function swE(e){if(swGal){swGal=false;return}const dx=ptX(e)-swX,dy=ptY(e)-swY;if(Date.now()-swT>900||Math.abs(dx)<50||Math.abs(dx)<1.5*Math.abs(dy))return;
- const next=dx<0?(st.city=='msk'?'gel':'msk'):(st.city=='gel'?'msk':'msk');setCity(next)}
 // ——— анонсы: фото в ряд слайдами, по клику — на весь экран ———————————————————
 // Порядок в карточке: название → фотографии (карусель) → описание (на всю ширину).
-// Свайп внутри карусели не переключает город: swS запоминает, что жест начат на фото.
 const evPhotos=e=>{const a=Array.isArray(e&&e.photos)&&e.photos.length?e.photos:(e&&e.img?[e.img]:[]);return a.filter(p=>p&&IMG[p])};
 function evGal(e){
  const ps=evPhotos(e);if(!ps.length)return '';
@@ -245,18 +270,19 @@ function evsHTML(){
  return l.map(evCard).join('')}
 function setBD(d){st.bdate=d;document.querySelectorAll('#bdw .chip').forEach(b=>{const on=b.dataset.d==d;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});const h=$('#bdh');if(h)h.textContent=d?'Выбрана дата: '+d:'Выберите дату из списка'}
 function openBook(id){const e=D.ev.find(x=>x&&x.id==id&&x.on!==false);if(!e)return toast('Анонс недоступен — обновите страницу');st.ev=id;st.bdate=e.dates.length===1?e.dates[0]:null;st.tab='book';scrollTo(0,0);render()}
+// Страница записи — только суть: тема анонса и дата фото дня. Описание и фотографии
+// не дублируются: посетитель уже видел их на главной (так попросил фотограф).
 function book(){
  const e=D.ev.find(x=>x&&x.id==st.ev);if(!e)return `<h1 style="margin-top:20px">Запись</h1><p class="mut">Анонс недоступен.</p><button class="btn s" onclick="go('port')">← На главную</button>`;
  const disc=e.old&&e.old>e.price?Math.round((1-e.price/e.old)*100):0,pre=e.pre!=null&&e.pre<e.price;
  return `<button class="btn s" style="margin:14px 0 0" onclick="go('port')">← К анонсам</button><h1 style="margin-top:10px">${esc(e.t)}</h1>
- <p class="mut">${esc(CITIES[e.city]||e.city)}</p>${evGal(e)}${e.d?`<div class="evd mut" style="margin:6px 0 8px">${rtOut(e.d)}</div>`:''}
+ <p class="mut">${esc(CITIES[e.city]||e.city)}</p>
  <div class="card"><b>Дата фото дня</b><div class="mut" style="margin-top:2px">Запись только на даты, которые задал фотограф.</div>
  <div class="chips" id="bdw" style="margin:8px -20px 0">${e.dates.map(d=>`<button type="button" class="chip ${st.bdate==d?'on':''}" data-d="${esc(d)}" aria-pressed="${st.bdate==d}" onclick="setBD(this.dataset.d)">${esc(d)}</button>`).join('')}</div>
  <div class="mut" id="bdh">${st.bdate?'Выбрана дата: '+esc(st.bdate):(e.dates.length?'Выберите дату из списка':'Даты уточняются — пока запись недоступна')}</div></div>
  <label>Имя *<input id="f_n"></label><label>Контакт (телефон / Telegram) *<input id="f_c"></label>
- <label>Время / интервал<input id="f_t" placeholder="например, утро"></label>
  <label>Комментарий<textarea id="f_m" rows="2"></textarea></label>
- <p>Итого: <span class="pr">${rub(e.price)}</span>${disc?` <s class="mut">${rub(e.old)}</s> <span class="tag t">−${disc}%</span>`:''}<br><span class="mut">К оплате сейчас: ${rub(pre||e.price)}</span></p>
+ <p>Итого: <span class="pr">${rub(e.price)}</span>${disc?` <s class="mut">${rub(e.old)}</s> <span class="tag t">−${disc}%</span>`:''}<br><span class="mut">К оплате сейчас: ${rub(pre?e.pre:e.price)}</span></p>
  <div class="ck"><input type="checkbox" id="c1"><label>Я ознакомился с ${docLink('contract')} и подтверждаю запись</label></div>
  <div class="ck"><input type="checkbox" id="c2"><label>Я прочитал ${docLink('privacy')}</label></div>
  <div class="ck"><input type="checkbox" id="c3"><label>Даю ${docLink('consent')} (отдельное согласие)</label></div>
@@ -268,9 +294,9 @@ async function submitBook(){
  if(!v('f_n')||!v('f_c'))return toast('Заполните имя и контакт');
  if(!['c1','c2','c3'].every(i=>$('#'+i).checked))return toast('Подтвердите все три пункта (галочки не ставятся заранее)');
  const first=e.pre!=null&&e.pre<e.price?e.pre:e.price;
- if(SRV){if(SUBM)return;SUBM=true;try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'create',order:{evId:e.id,date:st.bdate,time:v('f_t'),name:v('f_n'),contact:v('f_c'),com:v('f_m'),accepted:true,tg:TGDATA()}}});const o=r.order,L=myList();L.push({id:o.id,k:o.k});try{localStorage.setItem(MYK,JSON.stringify(L))}catch(e2){}D.ord.unshift(o);st.ev=null;
+ if(SRV){if(SUBM)return;SUBM=true;try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'create',order:{evId:e.id,date:st.bdate,name:v('f_n'),contact:v('f_c'),com:v('f_m'),accepted:true,tg:TGDATA()}}});const o=r.order,L=myList();L.push({id:o.id,k:o.k});try{localStorage.setItem(MYK,JSON.stringify(L))}catch(e2){}D.ord.unshift(o);st.ev=null;
   modal(`<h2>Вы записаны · №${o.id}</h2><p>«${esc(o.svc)}» · ${esc(o.city)}, ${esc(o.date)}${o.time?' · '+esc(o.time):''}.</p><p class="mut">Место на дате закрепляется после оплаты.</p>${payBlock(o)}`);st.tab='my';render()}catch(e2){toast(e2.message)}finally{SUBM=false}return}
- const o={id:D.seq++,evId:e.id,svc:e.t,cat:e.city,name:v('f_n'),contact:v('f_c'),date:st.bdate,time:v('f_t'),city:CITIES[e.city]||e.city,com:v('f_m'),ad:[],
+ const o={id:D.seq++,evId:e.id,svc:e.t,cat:e.city,name:v('f_n'),contact:v('f_c'),date:st.bdate,city:CITIES[e.city]||e.city,com:v('f_m'),ad:[],
  total:e.price,first,paid:0,status:'Ожидает оплаты',pay:'Ожидает оплаты',note:'',log:[],
  acc:['contract','privacy','consent'].map(k=>({doc:DN[k],ver:D.docs[k].at(-1).v,at:now(),how:'чекбокс в приложении'}))};
  log(o,'Запись на «'+e.t+'» ('+CITIES[e.city]+', '+st.bdate+'); документы подтверждены');D.ord.unshift(o);save();st.ev=null;
@@ -295,8 +321,127 @@ function act(id,a){
  first:()=>+v>0?(o.first=+v,log(o,'Задан первый платёж '+v),save(),render()):toast('Введите сумму'),
  note:()=>(o.note=v,log(o,'Заметка обновлена'),save(),render())};m[a]()
 }
-addEventListener('scroll',()=>$('#up').classList.toggle('on',scrollY>500),{passive:true});
-function toTop(){try{$('#top').scrollIntoView({behavior:'smooth',block:'start'})}catch(e){}setTimeout(()=>{if(scrollY>0)scrollTo(0,0);const d=document.documentElement;if(d&&d.scrollTop>0)d.scrollTop=0;if(document.body.scrollTop>0)document.body.scrollTop=0},800)}
+// ——— рабочая таблица записей: фильтры, сортировка, правка, удаление, экспорт ————
+// Фильтры и раскрытые строки живут в st.of и переживают перерисовку. Перерисовывается
+// только область результатов (#of_res), чтобы не сбивать фокус в поле поиска.
+// Правки полей (ofEdit) журналируются в заявку и уходят на сервер автосохранением.
+const dmy=s=>{const m=/^(\d{2})\.(\d{2})\.(\d{4})$/.exec(String(s||''));return m?m[3]+'-'+m[2]+'-'+m[1]:''};
+function ofOrd(){
+ const O=st.of,q=O.q.trim().toLowerCase();
+ const l=D.ord.filter(o=>{if(!o)return false;
+  if(O.stt&&o.status!=O.stt)return false;
+  if(O.city&&o.cat!=O.city)return false;
+  if(q&&![o.id,o.name,o.contact,o.svc].join(' ').toLowerCase().includes(q))return false;
+  const d=dmy(o.date);
+  if(O.d1&&(!d||d<O.d1))return false;
+  if(O.d2&&(!d||d>O.d2))return false;
+  return true});
+ l.sort((a,b)=>{let x,y;
+  if(O.sk=='id'||O.sk=='total'||O.sk=='paid'){x=+a[O.sk]||0;y=+b[O.sk]||0}
+  else if(O.sk=='date'){x=dmy(a.date);y=dmy(b.date)}
+  else{x=String(a[O.sk]??'').toLowerCase();y=String(b[O.sk]??'').toLowerCase()}
+  return (x<y?-1:x>y?1:0)*O.sd});
+ return l}
+function ofSet(k,v,refocus){st.of[k]=v;ofRender();if(refocus){const el=$('#of_q');if(el){el.focus();try{el.setSelectionRange(el.value.length,el.value.length)}catch(e){}}}}
+function ofSort(k){if(st.of.sk==k)st.of.sd*=-1;else{st.of.sk=k;st.of.sd=-1}ofRender()}
+function ofSel(id,c){st.of.sel[id]=!!c;ofRender()}
+function ofSelIds(){return Object.keys(st.of.sel).filter(k=>st.of.sel[k]&&ord(+k)).map(Number)}
+function ofSelClear(){st.of.sel={};ofRender()}
+function ofOpen(id){st.of.open[id]=!st.of.open[id];ofRender()}
+function ofReset(){st.of={q:'',stt:'',city:'',d1:'',d2:'',sk:'id',sd:-1,open:st.of.open,sel:st.of.sel};ofRender()}
+function ofRender(){const n=$('#of_res');if(n)n.innerHTML=ofTable()}
+function ofHTML(){
+ if(!D.ord.length)return '<div class="warn">Записей пока нет — они появятся здесь, когда клиенты начнут записываться.</div>';
+ const O=st.of;
+ return `<div class="warn">Рабочая таблица записей: фильтры, сортировка по столбцам, правка полей в раскрытой строке, удаление и экспорт. «Экспорт CSV» выгружает отфильтрованный список вместе с финансовым итогом (без фильтров — все записи).</div>
+ <div class="card"><label>Поиск: имя, контакт, номер, услуга<input id="of_q" value="${esc(O.q)}" oninput="ofSet('q',this.value,true)"></label>
+ <div class="row"><label>Статус<select onchange="ofSet('stt',this.value)"><option value="">Все статусы</option>${OS.map(s=>`<option ${O.stt==s?'selected':''}>${esc(s)}</option>`).join('')}</select></label>
+ <label>Город<select onchange="ofSet('city',this.value)"><option value="">Все города</option><option value="msk" ${O.city=='msk'?'selected':''}>Москва</option><option value="gel" ${O.city=='gel'?'selected':''}>Геленджик</option></select></label></div>
+ <div class="row"><label>Дата фото дня — с<input type="date" value="${esc(O.d1)}" onchange="ofSet('d1',this.value)"></label><label>по<input type="date" value="${esc(O.d2)}" onchange="ofSet('d2',this.value)"></label></div>
+ <div class="row"><button class="btn s" onclick="ofReset()">Сбросить фильтры</button><button class="btn" onclick="ofExport()">Экспорт CSV с отчётом</button></div></div>
+ <div id="of_res">${ofTable()}</div>`}
+function ofTable(){
+ const O=st.of,l=ofOrd();
+ const cc={};let paidS=0,totS=0;for(const o of l){cc[(o.contact||o.name||'').trim().toLowerCase()]=1;paidS+=+o.paid||0;totS+=+o.total||0}
+ const sel=ofSelIds();
+ let h=`<p class="mut" style="margin:10px 0 2px">Показано <b>${l.length}</b> из ${D.ord.length} · клиентов (по контактам): <b>${Object.keys(cc).length}</b> · оплачено: <b>${rub(paidS)}</b> · сумма записей: <b>${rub(totS)}</b></p>`;
+ if(sel.length)h+=`<div class="card row" style="padding:8px 12px;margin:6px 0"><span>Выбрано: ${sel.length}</span><span><button class="btn r" style="padding:6px 14px" onclick="askDelOrd(ofSelIds())">Удалить выбранные</button><button class="btn s" style="padding:6px 14px" onclick="ofSelClear()">Снять выделение</button></span></div>`;
+ if(!l.length)return h+'<p class="mut">Ничего не найдено — ослабьте фильтры.</p>';
+ const th=(k,t)=>`<th${k?` role="button" tabindex="0" aria-label="Сортировать: ${esc(t)}" onclick="ofSort('${k}')"`:''}>${t}${O.sk==k?(O.sd>0?' ▲':' ▼'):''}</th>`;
+ h+=`<div style="overflow-x:auto"><table class="of"><thead><tr><th></th>${th('id','№')}${th('name','Клиент')}<th>Контакт</th>${th('date','Дата фото дня')}<th>Услуга</th>${th('total','Итого, ₽')}${th('paid','Оплачено, ₽')}${th('status','Статус')}<th></th></tr></thead><tbody>${l.map(ofRow).join('')}</tbody></table></div>`;
+ return h}
+function ofRow(o){
+ const on=!!st.of.open[o.id];
+ return `<tr><td><input type="checkbox" ${st.of.sel[o.id]?'checked':''} aria-label="Выбрать запись №${o.id}" onchange="ofSel(${o.id},this.checked)"></td>
+ <td class="nw">${o.id}</td><td>${esc(o.name)}</td><td>${esc(o.contact)}</td><td class="nw">${esc(o.date)}</td><td>${esc(o.svc)}</td><td class="nw">${rub(o.total)}</td><td class="nw">${+o.paid?rub(o.paid):'—'}</td><td>${esc(o.status)}</td>
+ <td><button class="btn s" style="padding:4px 10px" aria-expanded="${on}" aria-label="${on?'Свернуть':'Раскрыть'} запись №${o.id}" onclick="ofOpen(${o.id})">${on?'▲':'▼'}</button></td></tr>`+
+ (on?`<tr class="det"><td></td><td colspan="9">${ofDet(o)}</td></tr>`:'')}
+function ofDet(o){
+ const B=(a,t,c='')=>`<button class="btn ${c}" onclick="act(${o.id},'${a}')">${t}</button>`,S=o.status;let b='';
+ if(S=='Оплачен, ожидает консультации')b+=B('sch','Назначить консультацию');
+ if(S=='Консультация назначена')b+=B('done','Консультация проведена');
+ if(S=='Ожидает решения фотографа')b+=B('cont','Продолжить')+B('alt','Предложить др. дату','s')+B('stop','Прекратить','r');
+ if(S=='Ожидает подтверждения даты')b+=B('conf','Подтвердить дату');
+ if(S=='Дата подтверждена')b+=B('work','В работу');if(S=='В работе')b+=B('fin','Завершить');
+ if(!['Завершён','Отменён','Запрошено прекращение договора','Ожидает расчёта взаиморасчётов'].includes(S))b+=B('rq','Запрос возврата от клиента','s');
+ return `<div class="card" style="margin:4px 0"><div class="row"><label>Имя<input value="${esc(o.name)}" onchange="ofEdit(${o.id},'name',this.value)"></label><label>Контакт<input value="${esc(o.contact)}" onchange="ofEdit(${o.id},'contact',this.value)"></label></div>
+ <div class="row"><label>Дата фото дня<input type="date" value="${dmy(o.date)}" onchange="ofEdit(${o.id},'date',this.value)"></label><label>Город<select onchange="ofEdit(${o.id},'city',this.value)"><option value="msk" ${o.city=='Москва'?'selected':''}>Москва</option><option value="gel" ${o.city=='Геленджик'?'selected':''}>Геленджик</option></select></label></div>
+ <div class="row"><label>Итого, ₽<input type="number" value="${+o.total||0}" onchange="ofEdit(${o.id},'total',this.value)"></label><label>Первый платёж, ₽<input type="number" value="${o.first==null?'':o.first}" placeholder="определит фотограф" onchange="ofEdit(${o.id},'first',this.value)"></label></div>
+ <label>Статус<select onchange="ofEdit(${o.id},'status',this.value)">${OS.map(s=>`<option ${s==o.status?'selected':''}>${esc(s)}</option>`).join('')}</select></label>
+ <div class="mut" style="margin:4px 0">Комментарий: ${esc(o.com||'—')}${o.cons?'<br>Консультация: '+esc(o.cons):''}${o.sum?'<br>Итог консультации: '+esc(o.sum):''}${o.alt?'<br>Предложена дата: '+esc(o.alt):''}${o.cdate?'<br>Дата подтверждена: '+esc(o.cdate):''}${o.note?'<br>Заметка (скрыта от клиента): '+esc(o.note):''}</div>
+ <label>Поле для действия: дата / итог консультации / причина<input id="in${o.id}" placeholder="например, 20.11.2026"></label>
+ <div class="rtb">${b}<button class="btn s" onclick="act(${o.id},'note')">Сохранить поле как заметку</button></div>
+ <div class="rtb"><button class="btn r" onclick="askDelOrd([${o.id}])">Удалить запись</button></div>
+ <div class="log">Документы: ${(o.acc||[]).map(a=>esc(a.doc)+' р.'+a.ver).join('; ')}<br>${(o.log||[]).map(esc).join('<br>')}</div></div>`}
+function ofEdit(id,k,v){
+ const o=ord(id);if(!o)return;v=String(v??'').trim();
+ if(k=='name'){if(!v)return toast('Имя не может быть пустым');if(o.name==v)return;o.name=v.slice(0,120);log(o,'Изменено имя: '+o.name)}
+ else if(k=='contact'){if(!v)return toast('Контакт не может быть пустым');if(o.contact==v)return;o.contact=v.slice(0,200);log(o,'Изменён контакт: '+o.contact)}
+ else if(k=='date'){const d=ruDate(v);if(!d)return toast('Выберите дату');if(o.date==d)return;o.date=d;log(o,'Дата фото дня изменена: '+d)}
+ else if(k=='city'){if(!CITIES[v])return toast('Недопустимый город');if(o.cat==v)return;o.cat=v;o.city=CITIES[v];log(o,'Город изменён: '+o.city)}
+ else if(k=='total'||k=='first'){
+  if(v===''){if(k!='first')return toast('Сумма не может быть пустой');if(o.first==null)return;o.first=null;log(o,'Первый платёж сброшен — определит фотограф')}
+  else{const n=+v;if(!isFinite(n)||n<0)return toast('Введите корректную сумму');if(o[k]==n)return;o[k]=n;log(o,(k=='total'?'Итоговая сумма изменена: ':'Первый платёж изменён: ')+rub(n))}}
+ else if(k=='status'){if(!OS.includes(v))return toast('Недопустимый статус');if(o.status==v)return;o.status=v;log(o,'Статус изменён: '+v)}
+ else return;
+ save();ofRender()}
+// Удаление записей: на сервере — действие delete с токеном фотографа; в демо —
+// только локально. У клиента запись исчезает: «Мои заказы» строится из серверного
+// списка, а ярлык удалённой записи на устройстве отвечает 404 и вычищается.
+let PEND_DEL=null;
+function askDelOrd(ids){ids=(ids||[]).map(Number).filter(n=>ord(n));if(!ids.length)return;PEND_DEL=ids;
+ modal(`<h2>${ids.length>1?'Удалить записи ('+ids.length+')?':'Удалить запись №'+ids[0]+'?'}</h2><p>Запись исчезнет и у клиента — из «Мои заказы» тоже. Действие необратимо.</p><button class="btn r" onclick="delOrd()">Удалить</button>`)}
+async function delOrd(){
+ const ids=PEND_DEL||[];PEND_DEL=null;closeM();if(!ids.length)return;
+ if(SRV){try{const r=await api('/api/order',{method:'POST',body:{action:'delete',ids}});if(!r||r.ok!==true)throw new Error('сервер не подтвердил удаление')}
+  catch(e){PEND_DEL=ids;return toast('Не удалось удалить: '+e.message)}}
+ D.ord=D.ord.filter(o=>!ids.includes(o.id));
+ D.ref=D.ref.filter(r=>!ids.includes(r.oid));
+ for(const id of ids){delete st.of.sel[id];delete st.of.open[id]}
+ snap();save();ofRender();toast(ids.length>1?'Записи удалены: '+ids.length:'Запись №'+ids[0]+' удалена')}
+// Финансовый отчёт: CSV с разделителем «;» и BOM — открывается в Excel двойным
+// кликом. В конце файла — итоговый блок: записи, клиенты, заработано, план, остаток.
+function ofCsv(l){
+ const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+ const created=o=>{const s=(o.log&&o.log[o.log.length-1])||'';const m=/^(\d{2}\.\d{2}\.\d{4}),/.exec(s);return m?m[1]:''};
+ const lines=[['№','Создана','Клиент','Контакт','Город','Услуга','Дата фото дня','Дата подтверждена','Статус','Итого, ₽','Первый платёж, ₽','Оплачено, ₽','Оплата','Комментарий','Заметка фотографа'].map(q).join(';')];
+ for(const o of l)lines.push([o.id,created(o),o.name,o.contact,o.city,o.svc,o.date,o.cdate||'',o.status,+o.total||0,o.first==null?'':o.first,+o.paid||0,o.pay,o.com||'',o.note||''].map(q).join(';'));
+ const cc={};let paidS=0,totS=0;for(const o of l){cc[(o.contact||o.name||'').trim().toLowerCase()]=1;paidS+=+o.paid||0;totS+=+o.total||0}
+ const O=st.of,fl=[[O.q,'поиск: «'+O.q+'»'],[O.stt,'статус: '+O.stt],[O.city,'город: '+(CITIES[O.city]||O.city)],[O.d1,'дата с '+ruDate(O.d1)],[O.d2,'дата по '+ruDate(O.d2)]].filter(x=>x[0]).map(x=>x[1]).join(', ');
+ lines.push('');
+ lines.push(['Записей в отчёте',l.length].map(q).join(';'));
+ lines.push(['Клиентов (уникальных контактов)',Object.keys(cc).length].map(q).join(';'));
+ lines.push(['Заработано (оплачено клиентами), ₽',paidS].map(q).join(';'));
+ lines.push(['Сумма всех записей (план), ₽',totS].map(q).join(';'));
+ lines.push(['Ожидается оплаты, ₽',Math.max(0,totS-paidS)].map(q).join(';'));
+ lines.push(['Отчёт сформирован',now()+(fl?' · фильтры: '+fl:' · все записи')].map(q).join(';'));
+ return lines.join('\r\n')}
+function ofExport(){
+ const l=ofOrd();
+ try{const b=new Blob(['\ufeff'+ofCsv(l)],{type:'text/csv;charset=utf-8'}),u=URL.createObjectURL(b),a=document.createElement('a');
+ a.href=u;a.download='zakazy-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>{try{URL.revokeObjectURL(u)}catch(e){}},3000);
+ toast('CSV выгружен: записей — '+l.length)}catch(e){toast('Не удалось выгрузить файл')}}
 // ——— управление фото и видео (админка) ————————————————————————————————————————
 const IM=id=>IMG[id]?`<img src="${IMG[id]}" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;display:block">`:`<div style="aspect-ratio:1;background:var(--bd)"></div>`;
 const GR='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0';
@@ -320,8 +465,68 @@ async function vidUp(inp){
  catch(e){toast('Не удалось загрузить: '+e.message);return}
  PH.video={id,ext};phSave();render();toast(SRV?'Видео загружено, сохраняю…':'Видео загружено (макет)')}
 function vidDel(){const v=PH.video;if(v&&v.id&&VID[v.id]){try{URL.revokeObjectURL(VID[v.id])}catch(e){}delete VID[v.id]}PH.video=null;phSave();render();toast('Видео убрано с первого экрана')}
+// ——— текст в шапке главной страницы: надпись над именем, имя (до двух строк), подзаголовок ——
+// Хранится в PH.brand (тот же объект, что видео и кадры первого экрана). Пока фотограф
+// ничего не менял, действует стандартный текст; первая правка фиксирует все четыре
+// значения — после этого пустое поле честно означает пустую строку на сайте.
+const BR_D={kicker:'фотограф',n1:'Полина',n2:'Кушнаренко',sub:'Сайт-афиша фото дней и скидок: живые съёмки по специальным ценам в Москве и Геленджике.'};
+const brandEff=()=>{const b=(PH.brand&&typeof PH.brand=='object'&&!Array.isArray(PH.brand))?PH.brand:null;
+ return {kicker:b?String(b.kicker??'').trim():BR_D.kicker,n1:b?String(b.n1??'').trim():BR_D.n1,n2:b?String(b.n2??'').trim():BR_D.n2,sub:b?String(b.sub??'').trim():BR_D.sub}};
+const brandLim={kicker:60,n1:40,n2:40,sub:300};
+function phBrand(k,v){const b=brandEff();b[k]=String(v??'').trim().slice(0,brandLim[k]||120);PH.brand=b;phSave();render();toast('Текст шапки сохранён')}
+// ——— соцсети фотографа: кружки-ссылки в шапке сайта ———————————————————————————
+// Хранится в PH.soc {ig,tg,vk,mx,wa}; пустое/отсутствующее значение — кнопки нет.
+// Значок рисуется одним SVG-путём, цвет — фирменный цвет сети (CSS-переменная --c).
+const SOC_ORDER=['ig','tg','vk','mx','wa'];
+const SOC_META={
+ ig:{n:'Instagram',c:'#E1306C',ex:'https://instagram.com/username',h:['instagram.com','instagr.am','ig.me'],svg:'<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="2.2" y="2.2" width="15.6" height="15.6" rx="4.6"/><circle cx="10" cy="10" r="3.7"/><circle cx="14.8" cy="5.2" r="1.05" fill="currentColor" stroke="none"/></svg>'},
+ tg:{n:'Telegram',c:'#229ED9',ex:'https://t.me/username',h:['t.me','telegram.me','telegram.dog'],svg:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21.5" y1="2.5" x2="11" y2="13"/><polygon points="21.5 2.5 14.8 21.5 11 13 2.5 9.2 21.5 2.5"/></svg>'},
+ vk:{n:'ВКонтакте',c:'#0077FF',ex:'https://vk.com/username',h:['vk.com','vk.ru','vkontakte.ru','vk.me'],svg:'<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><text x="10" y="10.7" text-anchor="middle" dominant-baseline="central" font-family="Manrope,Inter,system-ui,sans-serif" font-weight="800" font-size="9.5" fill="currentColor">VK</text></svg>'},
+ mx:{n:'MAX',c:'#7A5CFA',ex:'https://max.ru/u/xxxxxxxx',h:['max.ru'],svg:'<svg viewBox="0 0 20 20" width="20" height="20" aria-hidden="true"><text x="10" y="10.9" text-anchor="middle" dominant-baseline="central" font-family="Manrope,Inter,system-ui,sans-serif" font-weight="800" font-size="12" fill="currentColor">M</text></svg>'},
+ wa:{n:'WhatsApp',c:'#25D366',ex:'https://wa.me/79001234567',h:['wa.me','api.whatsapp.com','chat.whatsapp.com','whatsapp.com'],svg:'<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.8a7.2 7.2 0 0 0-6.2 10.8L2.8 17.2l3.7-.9A7.2 7.2 0 1 0 10 2.8z"/><path d="M7.6 6.7c-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 1.9s.8 2.2.9 2.4c.1.2 1.6 2.6 4 3.5 2 .8 2.4.6 2.8.6.4 0 1.3-.5 1.5-1.1.2-.5.2-1 .1-1.1 0-.1-.2-.2-.4-.3l-1.6-.7c-.2-.1-.4-.1-.6.1l-.8.9c-.1.2-.3.2-.5.1-.2-.1-.9-.3-1.7-1-.6-.6-1-1.3-1.2-1.5-.1-.2 0-.4.1-.5l.4-.5c.1-.1.2-.3.2-.4 0-.2 0-.3-.1-.4L7.6 6.7z" fill="currentColor" stroke="none"/></svg>'},
+};
+const socList=()=>{const s=PH.soc&&typeof PH.soc=='object'&&!Array.isArray(PH.soc)?PH.soc:null;
+ return s?SOC_ORDER.filter(k=>typeof s[k]=='string'&&/^https:\/\//i.test(s[k])).map(k=>[k,s[k]]):[]};
+const socRow=()=>{const l=socList();if(!l.length)return '';
+ return `<div class="soc" role="group" aria-label="Связаться с фотографом"><span class="soc-cap">Связаться со мной:</span>`+
+  l.map(([k,u])=>{const m=SOC_META[k];return `<a class="soc-b" style="--c:${m.c}" href="${esc(u)}" target="_blank" rel="noopener noreferrer" title="${m.n}" aria-label="${m.n}" onclick="socOpen(event,this.href)">${m.svg}</a>`}).join('')+`</div>`};
+function socOpen(e,u){e.preventDefault();try{const t=window.Telegram&&Telegram.WebApp;if(t&&typeof t.openLink=='function'){t.openLink(u);return}}catch(_){}window.open(u,'_blank','noopener')}
+// Нормализация введённой ссылки: @username и «голый» ник превращаются в полный
+// https-адрес нужной сети, номер телефона — в wa.me. Не похоже на адрес — пусто.
+function socNorm(k,v){let s=String(v??'').trim().slice(0,200);if(!s)return '';
+ s=s.replace(/^@/,'').replace(/^http:\/\//i,'https://');
+ if(!/^https:\/\//i.test(s)){
+  const dom=/^[a-z0-9.-]+\.[a-z]{2,}([/?#]|$)/i.test(s);
+  if(dom)s='https://'+s;
+  else if(k=='tg')s='https://t.me/'+s;
+  else if(k=='ig')s='https://instagram.com/'+s;
+  else if(k=='vk')s='https://vk.com/'+s;
+  else if(k=='wa'){const d=s.replace(/\D/g,'');if(!d)return '';s='https://wa.me/'+(d.length==11&&d[0]=='8'?'7'+d.slice(1):d)}
+  else return ''}
+ return s}
+// Финальная проверка: https, хост — домен именно этой сети, путь — только ASCII
+// (ники соцсетей латиницей; кириллицы в ссылке профиля не бывает).
+const SOC_OK=(k,s)=>{const m=typeof s=='string'?s.match(/^https:\/\/([A-Za-z0-9.-]+)(:\d{2,5})?(\/[!-~]*)?$/):null;
+ if(!m||s.length>200)return false;
+ const host=m[1].toLowerCase().replace(/^www\./,'');
+ if(!((SOC_META[k]?SOC_META[k].h:[]).includes(host)))return false;
+ if(k=='wa'&&host=='wa.me'&&!/^\/\d{6,15}(\?[!-~]*)?$/.test(m[3]||''))return false;
+ return true};
+function phSoc(k,v){const raw=String(v??'').trim();PH.soc=PH.soc&&typeof PH.soc=='object'&&!Array.isArray(PH.soc)?PH.soc:{};
+ if(!raw){delete PH.soc[k];phSave();render();toast('Кнопка «'+SOC_META[k].n+'» скрыта');return}
+ const s=socNorm(k,raw);
+ if(!s||!SOC_OK(k,s)){toast('Не похоже на ссылку «'+SOC_META[k].n+'» — пример: '+SOC_META[k].ex);render();return}
+ PH.soc[k]=s;phSave();render();toast('Ссылка «'+SOC_META[k].n+'» сохранена')}
 function phoHTML(){
- let h=`<div class="warn">${SRV?'Этот раздел — только для первого экрана сайта: видео-фон и главное фото. Фотографии самих анонсов загружаются в карточке анонса на вкладке «Анонсы».':'Фото сжимаются до 1600 px и хранятся в этом браузере (макет).'}</div>
+ const B=brandEff();
+ let h=`<div class="warn">${SRV?'Этот раздел — для первого экрана сайта: текст шапки, видео-фон и главное фото. Фотографии самих анонсов загружаются в карточке анонса на вкладке «Анонсы».':'Фото сжимаются до 1600 px и хранятся в этом браузере (макет).'}</div>
+ <h2>Текст в шапке главной страницы</h2><p class="mut">Эти строки видят все посетители на первом экране. Стандартные значения уже подставлены в поля — измените их или очистите; пустое поле означает пустую строку на сайте.</p>
+ <div class="card"><label>Надпись над именем<input value="${esc(B.kicker)}" maxlength="60" onchange="phBrand('kicker',this.value)"></label>
+ <div class="row"><label>Имя — строка 1<input value="${esc(B.n1)}" maxlength="40" onchange="phBrand('n1',this.value)"></label><label>Имя — строка 2 (можно очистить)<input value="${esc(B.n2)}" maxlength="40" onchange="phBrand('n2',this.value)"></label></div>
+ <label>Подзаголовок под именем<input value="${esc(B.sub)}" maxlength="300" onchange="phBrand('sub',this.value)"></label></div>
+ <h2>Кнопки соцсетей в шапке</h2><p class="mut">Кружки-ссылки на первом экране вместо кнопки «Связаться» — клиент напишет вам в один клик. Вставьте полную ссылку на аккаунт или просто ник: адрес нужной сети достроится сам; для WhatsApp укажите номер телефона. Пустое поле — кнопки нет, пусты все — блок на сайте не показывается. Ссылку на MAX берите в приложении MAX: аватар → значок QR-кода → «Поделиться».</p>
+ <div class="card">${(()=>{const SC=PH.soc&&typeof PH.soc=='object'&&!Array.isArray(PH.soc)?PH.soc:{};return SOC_ORDER.map(k=>{const m=SOC_META[k];return `<label>${m.n}<input value="${esc(SC[k]||'')}" placeholder="например, ${esc(m.ex)}" maxlength="200" onchange="phSoc('${k}',this.value)"></label>`}).join('')})()}
+ <div class="mut" style="font-size:12px;margin-top:2px">Предпросмотр:</div>${socRow()||'<p class="mut" style="font-size:13px;margin:4px 0 0">Пока пусто — блока с кнопками на сайте не будет.</p>'}</div>
  <h2>Видео на первом экране</h2><p class="mut">Короткий ролик без звука (MP4 или WebM, до 3,5 МБ): играет на фоне первого экрана и зацикливается. Если видео нет, показывается главное фото — назначьте его кнопкой ◇ на любом кадре ниже.</p>
  ${PH.video&&PH.video.id?`<div class="card row"><span>Видео на первом экране (${esc(PH.video.ext)})</span><button class="btn r" onclick="vidDel()">Убрать видео</button></div>`:'<div class="card"><label>Видео для первого экрана<input type="file" accept="video/mp4,video/webm" onchange="vidUp(this)"></label></div>'}
  ${PH.hero&&IMG[PH.hero]?`<div class="mut" style="font-size:13px;margin-bottom:4px">Сейчас главное фото (кадр-заставка для видео):</div><div style="width:110px;margin-bottom:6px">${IM(PH.hero)}</div>`:'<p class="mut">Главное фото не назначено.</p>'}
@@ -332,12 +537,13 @@ function phoHTML(){
 // ——— публичная главная страница ————————————————————————————————————————————————
 let VL=[],VI=0;
 function port(){
- return `<p style="font:500 14px Manrope,Inter,sans-serif;color:var(--wine);margin:28px 0 8px">фотограф</p><h1>Полина<br>Кушнаренко</h1><p class="mut" style="max-width:40ch;font-size:15px">Сайт-афиша фото дней и скидок: живые съёмки по специальным ценам в Москве и Геленджике.</p>
- <button class="btn s" onclick="toast('Контакт фотографа будет указан в настройках бота')">Связаться</button>
+ const B=brandEff();
+ return `<p style="font:500 14px Manrope,Inter,sans-serif;color:var(--wine);margin:28px 0 8px">${esc(B.kicker)}</p><h1>${esc(B.n1)}${B.n2?'<br>'+esc(B.n2):''}</h1><p class="mut" style="max-width:40ch;font-size:15px">${esc(B.sub)}</p>
+ ${socRow()}
  ${heroHTML()}
  <h2 style="margin-top:26px">Фото дни и скидки</h2>
- <div class="cityrow" role="group" aria-label="Город">${Object.entries(CITIES).map(([k,n])=>`<button type="button" class="chip ${st.city==k?'on':''}" aria-pressed="${st.city==k}" onclick="setCity('${k}')">${n}</button>`).join('')}<span class="mut" style="font-size:12px">↔ свайп</span></div>
- <div id="evs" ontouchstart="swS(event)" ontouchend="swE(event)">${evsHTML()}</div>`;
+ <div class="seg" role="group" aria-label="Город">${Object.entries(CITIES).map(([k,n])=>`<button type="button" class="${st.city==k?'on':''}" aria-pressed="${st.city==k}" onclick="setCity('${k}')">${n}</button>`).join('')}</div>
+ <div id="evs">${evsHTML()}</div>`;
 }
 // ——— полноэкранный просмотр фото анонса: слайды листаются свайпом/стрелками ————
 function vwOpen(list,i,ttl){VL=list||[];VI=i;$('#vtt').textContent=ttl||'Фото';
@@ -369,22 +575,9 @@ function adm(){if(!st.adm)return loginScreen();
 }
 function admBody(){
  if(st.at=='pho')return phoHTML();
- if(st.at=='ord')return D.ord.length?D.ord.map(o=>{
-  const B=(a,t,c='')=>`<button class="btn ${c}" onclick="act(${o.id},'${a}')">${t}</button>`,S=o.status;let b='';
-  if(o.first==null&&S=='Ожидает оплаты')b+=B('first','Задать первый платёж');
-  if(S=='Оплачен, ожидает консультации')b+=B('sch','Назначить консультацию');
-  if(S=='Консультация назначена')b+=B('done','Консультация проведена');
-  if(S=='Ожидает решения фотографа')b+=B('cont','Продолжить')+B('alt','Предложить др. дату','s')+B('stop','Прекратить','r');
-  if(S=='Ожидает подтверждения даты')b+=B('conf','Подтвердить дату');
-  if(S=='Дата подтверждена')b+=B('work','В работу');if(S=='В работе')b+=B('fin','Завершить');
-  if(!['Завершён','Отменён','Запрошено прекращение договора','Ожидает расчёта взаиморасчётов'].includes(S))b+=B('rq','Запрос возврата от клиента','s');
-  return `<div class="card"><div class="row"><b>№${o.id} · ${esc(o.svc)}</b><span class="tag">${S}</span></div>
-  <div class="mut">${esc(o.name)} · ${esc(o.contact)} · ${esc(o.city)}<br>Дата фото дня: ${esc(o.date)} ${esc(o.time||'')} · итого ${rub(o.total)} · платёж: ${esc(o.pay)} ${String(o.pay||'').includes('ТЕСТ')?'<span class="tag t">тест</span>':''}
-  ${o.com?'<br>Комм.: '+esc(o.com):''}${o.cons?'<br>Консультация: '+esc(o.cons):''}${o.sum?'<br>Итог консультации: '+esc(o.sum):''}${o.note?'<br>Заметка (скрыта от клиента): '+esc(o.note):''}</div>
-  <input id="in${o.id}" placeholder="Поле для действия: дата / итог / сумма / причина / заметка">${b}${B('note','Сохранить как заметку','s')}
-  <div class="log">Документы: ${(o.acc||[]).map(a=>esc(a.doc)+' р.'+a.ver).join('; ')}<br>${(o.log||[]).map(esc).join('<br>')}</div></div>`}).join(''):'<p class="mut">Записей пока нет.</p>';
+ if(st.at=='ord')return ofHTML();
  if(st.at=='ev')return `<div class="warn">Анонс — фото день или скидка в городе. Даты задаёте вы: клиент выберет только из них. Цена фиксируется в записи в момент создания, позже её изменение не затронет уже созданные записи.</div>
- <div class="card"><b>Город первой страницы</b><div class="mut" style="margin:2px 0 6px">Какой город открывается у посетителей при заходе на сайт (свайп и чипсы остаются). Пока вы не выберете — открывается Москва.</div>
+ <div class="card"><b>Город первой страницы</b><div class="mut" style="margin:2px 0 6px">Какой город открывается у посетителей при заходе на сайт. Переключение городов на главной — кнопками «Москва / Геленджик». Пока вы не выберете — открывается Москва.</div>
  <div class="row"><label>Город по умолчанию<select onchange="setDef(this.value)"><option value="" ${!D.set.def?'selected':''}>Не задан (Москва)</option><option value="msk" ${D.set.def=='msk'?'selected':''}>Москва</option><option value="gel" ${D.set.def=='gel'?'selected':''}>Геленджик</option></select></label></div></div>
  <button class="btn" onclick="newEv()">+ Новый анонс</button>`+(D.ev.length?D.ev.map(e=>`<div class="card"><div class="row"><b>${esc(e.t)}</b><span class="tag">${esc(CITIES[e.city]||e.city)}${e.on?'':' · скрыт'}</span></div>
   <div class="row"><label>Город<select onchange="evSet(${e.id},'city',this.value)"><option value="msk" ${e.city=='msk'?'selected':''}>Москва</option><option value="gel" ${e.city=='gel'?'selected':''}>Геленджик</option></select></label><label>Название<input value="${esc(e.t)}" onchange="evSet(${e.id},'t',this.value)"></label></div>
