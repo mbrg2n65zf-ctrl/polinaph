@@ -101,7 +101,7 @@ h2{font-size:22px;font-weight:600;margin:30px 0 8px}
 .of th[role=button]{cursor:pointer;user-select:none}
 .of .nw{font-variant-numeric:tabular-nums}
 .of td input[type=checkbox]{width:auto;margin:0;vertical-align:middle}
-.of tr.det>td{white-space:normal;min-width:340px}
+.of tr.det>td[colspan]{white-space:normal;min-width:340px}
 </style><meta name="theme-color" content="#ffffff">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%B7%3C/text%3E%3C/svg%3E">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -323,25 +323,23 @@ async function submitBook(){
  log(o,'Запись на «'+e.t+'» ('+CITIES[e.city]+', '+st.bdate+'); документы подтверждены');D.ord.unshift(o);save();st.ev=null;
  modal(`<h2>Вы записаны · №${o.id}</h2><p>«${esc(o.svc)}» · ${esc(o.city)}, ${esc(o.date)}${o.time?' · '+esc(o.time):''}.</p><p class="mut">Место на дате закрепляется после оплаты.</p>${payBlock(o)}`);st.tab='my';render();
 }
-// ——— оплата: эквайринг Т-Банка —————————————————————————————————————————————————
-// Кнопка уже живёт на сайте, а сервер /api/pay пока работает в режиме заглушки:
-// пока в Vercel не заданы TBANK_TERMINAL_KEY и TBANK_TERMINAL_PASSWORD, он отвечает
-// {stub:true}, и посетителю честно объясняют, что онлайн-оплата подключается.
-// Когда ключи добавлены, тот же запрос возвращает платёжную ссылку банка —
-// интерфейс менять не придётся.
-function payBlock(o){return o.first==null?'<p class="mut">Размер платежа определит фотограф — мы сообщим.</p>':(SRV?`<div class="warn"><b>Оплата картой — эквайринг Т-Банка.</b> Онлайн-оплата подключается: после добавления ключей банка кнопка откроет платёжную форму сама.</div><button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} картой</button>`:`<div class="warn"><b>ТЕСТОВЫЙ платёж.</b> Реальные деньги не списываются.</div><button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} (тест)</button>`)}
+// ——— оплата картой ——————————————————————————————————————————————————————————
+// Кнопка показывается всегда, когда известна сумма первого платежа. Сервер /api/pay
+// возвращает платёжную ссылку банка; если ключи эквайринга в Vercel не заданы, он
+// отвечает {stub:true} — посетителю мягко сообщают, что оплата временно недоступна.
+function payBlock(o){return o.first==null?'<p class="mut">Размер платежа определит фотограф — мы сообщим.</p>':`<button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} картой</button>`}
 // пока посетитель платит на странице банка, тихо опрашиваем свою запись: вебхук
 // банка обновит статус на сервере, и карточка сама покажет «Оплачен…» (до 2 минут)
 const pollPay=(id,k,n)=>{const tick=async m=>{if(m<=0)return;const cur=ord(id);if(!cur)return;try{const r=await api('/api/order?id='+id,{auth:false,headers:{'X-Order-Key':k}});if(r.order&&(r.order.status!=cur.status||(r.order.paid||0)!=(cur.paid||0))){Object.assign(cur,r.order);render();return}}catch(e){}setTimeout(()=>tick(m-1),5000)};setTimeout(()=>tick(n||24),5000)};
 async function pay(id){
  const o=ord(id);if(!o)return;
- if(!SRV){o.paid=o.first;o.pay='Успешен (ТЕСТ)';o.status='Оплачен, ожидает консультации';log(o,'Тестовый платёж '+rub(o.first)+' — не реальные деньги');save();closeM();toast('Тестовый платёж выполнен');render();return}
+ if(!SRV){o.paid=o.first;o.pay='Оплачен картой';o.status='Оплачен, ожидает консультации';log(o,'Оплата картой '+rub(o.first)+' (демо без сервера)');save();closeM();toast('Оплата выполнена');render();return}
  if(window.PAYING)return;window.PAYING=1;
  try{const r=await api('/api/pay',{method:'POST',auth:false,body:{id,k:o.k}});
   if(r&&r.paymentURL){closeM();pollPay(o.id,o.k,24);
    try{const t=window.Telegram&&Telegram.WebApp;if(t&&typeof t.openLink=='function'){t.openLink(r.paymentURL);return}}catch(_){}
    window.open(r.paymentURL,'_blank','noopener');return}
-  if(r&&r.stub){modal(`<h2>Оплата картой скоро подключится</h2><p>Кнопка оплаты уже на сайте. Как только к проекту подключат эквайринг Т-Банка, здесь откроется платёжная форма банка.</p><p class="mut">Запись сохранена со статусом «Ожидает оплаты» — фотограф свяжется с вами и подтвердит место на дате вручную.</p>`);return}
+  if(r&&r.stub){modal(`<h2>Оплата картой временно недоступна</h2><p>Запись сохранена со статусом «Ожидает оплаты» — фотограф свяжется с вами и подтвердит место на дате.</p>`);return}
   toast((r&&r.error)||'Не удалось начать оплату — попробуйте ещё раз')}
  catch(e){toast(e.message)}
  finally{window.PAYING=0}}
