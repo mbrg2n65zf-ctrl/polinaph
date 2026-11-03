@@ -406,6 +406,28 @@ export const publicOrder = o => {
   return rest;
 };
 
+// ——— эквайринг Т-Банка: подпись запросов (параметр Token) ————————————————————
+// Алгоритм банка: в подпись входят только плоские параметры корневого объекта —
+// вложенные объекты и массивы (Receipt, DATA) исключаются. К ним добавляется
+// Password терминала; пары сортируются по ключу по алфавиту, только значения
+// конкатенируются в одну строку и хешируются SHA-256 (UTF-8).
+// У ключей Token и Password из входного объекта особая роль: Token — сама подпись
+// (проверка вебхука), Password подставляется функцией отдельным аргументом.
+export const tbankToken = (params, password) => {
+  const pairs = [];
+  if (params && typeof params === 'object') {
+    for (const k of Object.keys(params)) {
+      const v = params[k];
+      if (v === null || v === undefined || typeof v === 'object') continue;
+      if (k === 'Token' || k === 'Password') continue;
+      pairs.push([k, String(v)]);
+    }
+  }
+  if (password) pairs.push(['Password', String(password)]);
+  pairs.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+  return createHash('sha256').update(pairs.map(p => p[1]).join(''), 'utf8').digest('hex');
+};
+
 // ——— проверка подписи Telegram Mini App (initData) ————————————————————————
 // Нужна только для атрибуции заявки пользователю Telegram; заявки принимаются и без неё.
 export function verifyInitData(initData, botToken) {

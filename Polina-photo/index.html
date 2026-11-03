@@ -57,9 +57,11 @@ h1{font-size:clamp(27px,10.5vw,40px);overflow-wrap:break-word}
 a.btn{text-decoration:none}
 .err{color:#b3261e;font-size:14px;min-height:20px;margin:2px 0}
 /* Кружки-ссылки на соцсети в шапке: тонкое кольцо и фирменный цвет значка,
-   при нажатии кружок заливается цветом сети. */
-.soc{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:14px 0 2px}
-.soc-cap{font:500 13px Manrope,Inter,system-ui,sans-serif;color:var(--mut)}
+   при нажатии кружок заливается цветом сети. Подпись «Связаться со мной:» всегда
+   на своей строке, кружки — на следующей: на узких экранах iPhone пять кружков
+   не помещались рядом с подписью и один переносился вниз по одному. */
+.soc{display:flex;align-items:flex-start;gap:9px;flex-wrap:wrap;margin:14px 0 2px}
+.soc-cap{font:500 13px Manrope,Inter,system-ui,sans-serif;color:var(--mut);width:100%}
 .soc-b{width:42px;height:42px;border-radius:50%;border:1px solid var(--bd);background:var(--card);color:var(--c);display:grid;place-items:center;cursor:pointer;text-decoration:none;transition:transform .15s,background .15s,color .15s,border-color .15s}
 .soc-b:hover,.soc-b:active{background:var(--c);border-color:var(--c);color:#fff;transform:translateY(-1px)}
 h1,h2{font-family:Manrope,Inter,system-ui,sans-serif;letter-spacing:-.025em}
@@ -124,6 +126,8 @@ const E0=[
  {id:1,city:'msk',t:'Осенний фото день',d:'25 минут съёмки · 15 обработанных кадров · помощь с позированием',dates:['15.11.2026','16.11.2026'],price:4900,old:7900,pre:1500,on:true},
  {id:2,city:'msk',t:'Экспресс-портреты в центре',d:'15 минут · 7 кадров · готовность 3 дня',dates:['22.11.2026'],price:2500,old:null,pre:null,on:true},
  {id:3,city:'gel',t:'Фото день у моря',d:'30 минут на набережной · 20 кадров · рассветный свет',dates:['05.12.2026','06.12.2026','07.12.2026'],price:3900,old:5900,pre:1000,on:true},
+ // id 4 — демонстрация архива: все даты прошли, анонс сам уходит в блок «Архив фото дней»
+ {id:4,city:'msk',t:'Летний фото день в парке',d:'Прошедший анонс — пример того, как выглядит архив.',dates:['12.07.2026','13.07.2026'],price:3500,old:5000,pre:1000,on:true},
 ];
 let D=(()=>{try{return JSON.parse(localStorage.getItem('pk2'))}catch(e){return null}})()||{ev:E0,ord:[],ref:[],set:{def:''},docs:Object.fromEntries(Object.keys(DN).map(k=>[k,[{v:1,d:now(),t:STUB}]])),seq:1};
 (()=>{if(!D||typeof D!='object')D={};if(!Array.isArray(D.ev))D.ev=E0.map(x=>({...x}));for(const x of D.ev)if(x&&typeof x=='object'&&!Array.isArray(x.photos))x.photos=x.img?[x.img]:[];if(!Array.isArray(D.ord))D.ord=[];if(!Array.isArray(D.ref))D.ref=[];D.seq=+D.seq||1;if(!D.set||typeof D.set!='object')D.set={};D.set.def=CITIES[D.set.def]?D.set.def:'';const dd={};for(const k of Object.keys(DN))dd[k]=Array.isArray(D.docs&&D.docs[k])?D.docs[k]:[{v:1,d:now(),t:STUB}];D.docs=dd})();
@@ -258,35 +262,52 @@ function evGal(e){
  return `<div class="evgal" id="eg${e.id}" onscroll="evGalSc(${e.id},this)" aria-label="Фотографии анонса">${ps.map((p,i)=>`<div class="sl" role="button" tabindex="0" aria-label="Фото ${i+1} из ${ps.length}, открыть на весь экран" onclick="evOpen(${e.id},${i})" onkeydown="if(event.key=='Enter')evOpen(${e.id},${i})"><img src="${IMG[p]}" alt="Фото к анонсу ${i+1}" loading="lazy"></div>`).join('')}</div>${ps.length>1?`<div class="evdots" id="gd${e.id}">${ps.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>`:''}`}
 function evGalSc(id,el){const d=$('#gd'+id);if(!d||!el.clientWidth)return;const k=Math.max(0,Math.min(d.children.length-1,Math.round(el.scrollLeft/(el.clientWidth+8))));[...d.children].forEach((c,j)=>c.classList.toggle('on',j===k))}
 function evOpen(id,i){const e=D.ev.find(x=>x&&x.id==id);if(!e)return;const ps=evPhotos(e);if(!ps.length)return;vwOpen(ps.map(p=>IMG[p]),i,'Фото · '+(CITIES[e.city]||e.city))}
+// ——— архив фото дней: анонс, все даты которого прошли, уходит с афиши сам ————————
+// Даты хранятся строками «ДД.ММ.ГГГГ» (так задаёт фотограф и видит клиент), поэтому
+// сравниваем их в формате ISO: dmy() превращает «15.11.2026» в «2026-11-15».
+// Граница — локальный день устройства: в сам день съёмки анонс ещё на афише,
+// назавтра он уже в архиве. Сервер (order.js) не пускает запись на прошедшую дату.
+const isPastDate=d=>{const i=dmy(d);return !!i&&i<todayIso()};
+const todayIso=()=>{const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0')};
+const evUpcoming=e=>(Array.isArray(e&&e.dates)?e.dates:[]).filter(d=>!isPastDate(d));
+// анонс завершён, если даты были и все прошли; «даты уточняются» остаётся на афише
+const evPast=e=>Array.isArray(e&&e.dates)&&e.dates.length>0&&e.dates.every(isPastDate);
 function evCard(e){
- const disc=e.old&&e.old>e.price?Math.round((1-e.price/e.old)*100):0,pre=e.pre!=null&&e.pre<e.price;
+ const disc=e.old&&e.old>e.price?Math.round((1-e.price/e.old)*100):0,pre=e.pre!=null&&e.pre<e.price,ud=evUpcoming(e);
  return `<div class="card"><b>${esc(e.t)}</b>${evGal(e)}${e.d?`<div class="evd mut" style="margin-top:6px">${rtOut(e.d)}</div>`:''}
- ${e.dates.length?`<div class="dates">${e.dates.map(d=>`<span>${esc(d)}</span>`).join('')}</div>`:'<div class="mut">даты уточняются</div>'}
+ ${ud.length?`<div class="dates">${ud.map(d=>`<span>${esc(d)}</span>`).join('')}</div>`:'<div class="mut">даты уточняются</div>'}
  <div class="row" style="margin-top:10px;align-items:flex-end"><span><span class="pr">${rub(e.price)}</span>${disc?` <s class="mut">${rub(e.old)}</s> <span class="tag t">−${disc}%</span>`:''}<br><span class="mut">${pre?'предоплата сейчас: '+rub(e.pre):'оплата при записи'}</span></span>
  <button class="btn" onclick="openBook(${e.id})">Записаться</button></div></div>`}
+// карточка в архиве — только название и дата проведения, без цен и записи
+const evArchCard=e=>`<div class="card"><div class="row"><b>${esc(e.t)}</b><span class="tag">прошёл</span></div>
+ <div class="dates">${e.dates.map(d=>`<span>${esc(d)}</span>`).join('')}</div></div>`;
 function evsHTML(){
- const l=D.ev.filter(e=>e&&e.on!==false&&e.city==st.city);
- if(!l.length)return `<p class="mut">В ${CITIES[st.city]} анонсов пока нет — загляните позже${D.ev.some(e=>e&&e.on!==false)?' или переключите город.':'.'}</p>`;
- return l.map(evCard).join('')}
+ const all=D.ev.filter(e=>e&&e.on!==false&&e.city==st.city);
+ const l=all.filter(e=>!evPast(e)),arch=all.filter(evPast);
+ let h='';
+ if(!l.length)h+=`<p class="mut">В ${CITIES[st.city]} анонсов пока нет — загляните позже${D.ev.some(e=>e&&e.on!==false)?' или переключите город.':'.'}</p>`;
+ h+=l.map(evCard).join('');
+ if(arch.length)h+=`<h2 style="margin-top:34px">Архив фото дней</h2><p class="mut" style="margin:-2px 0 2px">Прошедшие съёмки уходят сюда с афиши автоматически — по дате проведения.</p>`+arch.map(evArchCard).join('');
+ return h}
 function setBD(d){st.bdate=d;document.querySelectorAll('#bdw .chip').forEach(b=>{const on=b.dataset.d==d;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on)});const h=$('#bdh');if(h)h.textContent=d?'Выбрана дата: '+d:'Выберите дату из списка'}
-function openBook(id){const e=D.ev.find(x=>x&&x.id==id&&x.on!==false);if(!e)return toast('Анонс недоступен — обновите страницу');st.ev=id;st.bdate=e.dates.length===1?e.dates[0]:null;st.tab='book';scrollTo(0,0);render()}
+function openBook(id){const e=D.ev.find(x=>x&&x.id==id&&x.on!==false);if(!e)return toast('Анонс недоступен — обновите страницу');const ud=evUpcoming(e);st.ev=id;st.bdate=ud.length===1?ud[0]:null;st.tab='book';scrollTo(0,0);render()}
 // Страница записи — только суть: тема анонса и дата фото дня. Описание и фотографии
 // не дублируются: посетитель уже видел их на главной (так попросил фотограф).
 function book(){
  const e=D.ev.find(x=>x&&x.id==st.ev);if(!e)return `<h1 style="margin-top:20px">Запись</h1><p class="mut">Анонс недоступен.</p><button class="btn s" onclick="go('port')">← На главную</button>`;
- const disc=e.old&&e.old>e.price?Math.round((1-e.price/e.old)*100):0,pre=e.pre!=null&&e.pre<e.price;
+ const disc=e.old&&e.old>e.price?Math.round((1-e.price/e.old)*100):0,pre=e.pre!=null&&e.pre<e.price,ud=evUpcoming(e);
  return `<button class="btn s" style="margin:14px 0 0" onclick="go('port')">← К анонсам</button><h1 style="margin-top:10px">${esc(e.t)}</h1>
  <p class="mut">${esc(CITIES[e.city]||e.city)}</p>
  <div class="card"><b>Дата фото дня</b><div class="mut" style="margin-top:2px">Запись только на даты, которые задал фотограф.</div>
- <div class="chips" id="bdw" style="margin:8px -20px 0">${e.dates.map(d=>`<button type="button" class="chip ${st.bdate==d?'on':''}" data-d="${esc(d)}" aria-pressed="${st.bdate==d}" onclick="setBD(this.dataset.d)">${esc(d)}</button>`).join('')}</div>
- <div class="mut" id="bdh">${st.bdate?'Выбрана дата: '+esc(st.bdate):(e.dates.length?'Выберите дату из списка':'Даты уточняются — пока запись недоступна')}</div></div>
+ <div class="chips" id="bdw" style="margin:8px -20px 0">${ud.map(d=>`<button type="button" class="chip ${st.bdate==d?'on':''}" data-d="${esc(d)}" aria-pressed="${st.bdate==d}" onclick="setBD(this.dataset.d)">${esc(d)}</button>`).join('')}</div>
+ <div class="mut" id="bdh">${st.bdate?'Выбрана дата: '+esc(st.bdate):(ud.length?'Выберите дату из списка':'Свободных дат нет — запись пока недоступна')}</div></div>
  <label>Имя *<input id="f_n"></label><label>Контакт (телефон / Telegram) *<input id="f_c"></label>
  <label>Комментарий<textarea id="f_m" rows="2"></textarea></label>
  <p>Итого: <span class="pr">${rub(e.price)}</span>${disc?` <s class="mut">${rub(e.old)}</s> <span class="tag t">−${disc}%</span>`:''}<br><span class="mut">К оплате сейчас: ${rub(pre?e.pre:e.price)}</span></p>
  <div class="ck"><input type="checkbox" id="c1"><label>Я ознакомился с ${docLink('contract')} и подтверждаю запись</label></div>
  <div class="ck"><input type="checkbox" id="c2"><label>Я прочитал ${docLink('privacy')}</label></div>
  <div class="ck"><input type="checkbox" id="c3"><label>Даю ${docLink('consent')} (отдельное согласие)</label></div>
- <button class="btn" ${e.dates.length?'':'disabled'} onclick="submitBook()">Отправить запись и перейти к оплате</button>`}
+ <button class="btn" ${ud.length?'':'disabled'} onclick="submitBook()">Отправить запись и перейти к оплате</button>`}
 async function submitBook(){
  const e=D.ev.find(x=>x&&x.id==st.ev);if(!e)return toast('Анонс недоступен — обновите страницу');
  const v=i=>$('#'+i).value.trim();
@@ -302,8 +323,28 @@ async function submitBook(){
  log(o,'Запись на «'+e.t+'» ('+CITIES[e.city]+', '+st.bdate+'); документы подтверждены');D.ord.unshift(o);save();st.ev=null;
  modal(`<h2>Вы записаны · №${o.id}</h2><p>«${esc(o.svc)}» · ${esc(o.city)}, ${esc(o.date)}${o.time?' · '+esc(o.time):''}.</p><p class="mut">Место на дате закрепляется после оплаты.</p>${payBlock(o)}`);st.tab='my';render();
 }
-function payBlock(o){return o.first==null?'<p class="mut">Размер платежа определит фотограф — мы сообщим.</p>':`<div class="warn"><b>ТЕСТОВЫЙ платёж.</b> Реальные деньги не списываются.</div><button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} (тест)</button>`}
-async function pay(id){if(SRV){if(window.PAYING)return;window.PAYING=1;const o=ord(id);if(!o){window.PAYING=0;return toast('Запись не найдена')}try{const r=await api('/api/order',{method:'POST',auth:false,body:{action:'pay',id,k:o.k}});Object.assign(o,r.order);closeM();toast('Тестовый платёж выполнен');render()}catch(e){toast(e.message)}finally{window.PAYING=0}return}const o=ord(id);if(!o)return;o.paid=o.first;o.pay='Успешен (ТЕСТ)';o.status='Оплачен, ожидает консультации';log(o,'Тестовый платёж '+rub(o.first)+' — не реальные деньги');save();closeM();toast('Тестовый платёж выполнен');render()}
+// ——— оплата: эквайринг Т-Банка —————————————————————————————————————————————————
+// Кнопка уже живёт на сайте, а сервер /api/pay пока работает в режиме заглушки:
+// пока в Vercel не заданы TBANK_TERMINAL_KEY и TBANK_TERMINAL_PASSWORD, он отвечает
+// {stub:true}, и посетителю честно объясняют, что онлайн-оплата подключается.
+// Когда ключи добавлены, тот же запрос возвращает платёжную ссылку банка —
+// интерфейс менять не придётся.
+function payBlock(o){return o.first==null?'<p class="mut">Размер платежа определит фотограф — мы сообщим.</p>':(SRV?`<div class="warn"><b>Оплата картой — эквайринг Т-Банка.</b> Онлайн-оплата подключается: после добавления ключей банка кнопка откроет платёжную форму сама.</div><button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} картой</button>`:`<div class="warn"><b>ТЕСТОВЫЙ платёж.</b> Реальные деньги не списываются.</div><button class="btn" onclick="pay(${o.id})">Оплатить ${rub(o.first)} (тест)</button>`)}
+// пока посетитель платит на странице банка, тихо опрашиваем свою запись: вебхук
+// банка обновит статус на сервере, и карточка сама покажет «Оплачен…» (до 2 минут)
+const pollPay=(id,k,n)=>{const tick=async m=>{if(m<=0)return;const cur=ord(id);if(!cur)return;try{const r=await api('/api/order?id='+id,{auth:false,headers:{'X-Order-Key':k}});if(r.order&&(r.order.status!=cur.status||(r.order.paid||0)!=(cur.paid||0))){Object.assign(cur,r.order);render();return}}catch(e){}setTimeout(()=>tick(m-1),5000)};setTimeout(()=>tick(n||24),5000)};
+async function pay(id){
+ const o=ord(id);if(!o)return;
+ if(!SRV){o.paid=o.first;o.pay='Успешен (ТЕСТ)';o.status='Оплачен, ожидает консультации';log(o,'Тестовый платёж '+rub(o.first)+' — не реальные деньги');save();closeM();toast('Тестовый платёж выполнен');render();return}
+ if(window.PAYING)return;window.PAYING=1;
+ try{const r=await api('/api/pay',{method:'POST',auth:false,body:{id,k:o.k}});
+  if(r&&r.paymentURL){closeM();pollPay(o.id,o.k,24);
+   try{const t=window.Telegram&&Telegram.WebApp;if(t&&typeof t.openLink=='function'){t.openLink(r.paymentURL);return}}catch(_){}
+   window.open(r.paymentURL,'_blank','noopener');return}
+  if(r&&r.stub){modal(`<h2>Оплата картой скоро подключится</h2><p>Кнопка оплаты уже на сайте. Как только к проекту подключат эквайринг Т-Банка, здесь откроется платёжная форма банка.</p><p class="mut">Запись сохранена со статусом «Ожидает оплаты» — фотограф свяжется с вами и подтвердит место на дате вручную.</p>`);return}
+  toast((r&&r.error)||'Не удалось начать оплату — попробуйте ещё раз')}
+ catch(e){toast(e.message)}
+ finally{window.PAYING=0}}
 function my(){return `<h1>Мои заказы</h1>`+(D.ord.length?D.ord.map(o=>`<div class="card"><div class="row"><b>№${o.id} · ${esc(o.svc)}</b><span class="tag">${esc(o.status)}</span></div>
  <div class="mut">Дата фото дня: ${esc(o.date)} ${o.cdate?'':'<span class="tag">не подтверждена</span>'}${o.cdate?'· подтверждена: '+esc(o.cdate):''}${o.city?' · '+esc(o.city):''}<br>Итого: ${rub(o.total)} · оплата: ${esc(o.pay)}${o.paid?' (учтено '+rub(o.paid)+')':''}${o.alt?'<br>Фотограф предложил дату: '+esc(o.alt):''}</div>
  ${o.status=='Ожидает оплаты'&&o.first!=null?payBlock(o):''}</div>`).join(''):'<p class="mut">Записей пока нет.</p>')}
@@ -576,10 +617,10 @@ function adm(){if(!st.adm)return loginScreen();
 function admBody(){
  if(st.at=='pho')return phoHTML();
  if(st.at=='ord')return ofHTML();
- if(st.at=='ev')return `<div class="warn">Анонс — фото день или скидка в городе. Даты задаёте вы: клиент выберет только из них. Цена фиксируется в записи в момент создания, позже её изменение не затронет уже созданные записи.</div>
+ if(st.at=='ev')return `<div class="warn">Анонс — фото день или скидка в городе. Даты задаёте вы: клиент выберет только из них. Цена фиксируется в записи в момент создания, позже её изменение не затронет уже созданные записи. Когда все даты анонса прошли, карточка сама уходит с сайта в блок «Архив фото дней» — скрывать или удалять её не нужно.</div>
  <div class="card"><b>Город первой страницы</b><div class="mut" style="margin:2px 0 6px">Какой город открывается у посетителей при заходе на сайт. Переключение городов на главной — кнопками «Москва / Геленджик». Пока вы не выберете — открывается Москва.</div>
  <div class="row"><label>Город по умолчанию<select onchange="setDef(this.value)"><option value="" ${!D.set.def?'selected':''}>Не задан (Москва)</option><option value="msk" ${D.set.def=='msk'?'selected':''}>Москва</option><option value="gel" ${D.set.def=='gel'?'selected':''}>Геленджик</option></select></label></div></div>
- <button class="btn" onclick="newEv()">+ Новый анонс</button>`+(D.ev.length?D.ev.map(e=>`<div class="card"><div class="row"><b>${esc(e.t)}</b><span class="tag">${esc(CITIES[e.city]||e.city)}${e.on?'':' · скрыт'}</span></div>
+ <button class="btn" onclick="newEv()">+ Новый анонс</button>`+(D.ev.length?D.ev.map(e=>`<div class="card"><div class="row"><b>${esc(e.t)}</b><span class="tag">${esc(CITIES[e.city]||e.city)}${e.on?'':' · скрыт'}${evPast(e)?' · прошёл, в архиве':''}</span></div>
   <div class="row"><label>Город<select onchange="evSet(${e.id},'city',this.value)"><option value="msk" ${e.city=='msk'?'selected':''}>Москва</option><option value="gel" ${e.city=='gel'?'selected':''}>Геленджик</option></select></label><label>Название<input value="${esc(e.t)}" onchange="evSet(${e.id},'t',this.value)"></label></div>
   <label style="margin-top:8px">Описание — панель сверху форматирует выделенный текст, Enter делает новую строку</label>
   <div class="rtb" role="toolbar" aria-label="Форматирование описания">
@@ -632,7 +673,7 @@ function evSet(id,k,v){const e=D.ev.find(x=>x.id==id);if(!e)return;
  else if(k=='on')e.on=!!v;
  save();render()}
 const ruDate=iso=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso||''));return m?m[3]+'.'+m[2]+'.'+m[1]:''};
-function evAddDate(id){const e=D.ev.find(x=>x.id==id),i=$('#dt'+id);if(!e||!i)return;const d=ruDate(i.value);if(!d)return toast('Выберите дату в поле выше');if(e.dates.includes(d))return toast('Такая дата уже добавлена');e.dates.push(d);save();render()}
+function evAddDate(id){const e=D.ev.find(x=>x.id==id),i=$('#dt'+id);if(!e||!i)return;const d=ruDate(i.value);if(!d)return toast('Выберите дату в поле выше');if(e.dates.includes(d))return toast('Такая дата уже добавлена');if(isPastDate(d))return toast('Дата уже прошла — прошедшие фото дни показываются клиентам только в архиве');e.dates.push(d);save();render()}
 function evDelDate(id,i){const e=D.ev.find(x=>x.id==id);if(!e||!(i>=0&&i<e.dates.length))return;e.dates.splice(i,1);save();render()}
 // Фото анонса: загружаются сразу при выборе файлов (та же папка photos/ и счётчик
 // PH.q, что у главного фото первого экрана), id запоминаются в анонсе и уходят

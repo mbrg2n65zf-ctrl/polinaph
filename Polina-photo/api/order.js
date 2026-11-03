@@ -3,10 +3,10 @@
 //                            — клиент читает свою запись по номеру и секретному ключу k.
 // POST {action:'create'}   — клиент записывается на анонс фото дня (цена и даты —
 //                            только серверные, из анонса; подменить нельзя).
-// POST {action:'pay'}      — тестовая оплата по id + k.
 // POST {action:'mine'}     — «мои записи» клиента по подписанному initData.
 // POST {action:'admin'}    — сохранение правок записи (только токен фотографа).
 // POST {action:'delete'}   — удаление заявок по списку id (только токен фотографа).
+// Оплата вынесена в /api/pay (старт платежа) и /api/pay-webhook (уведомление банка).
 import { json, errJson, wrap, asStr, asInt, asNum, checkToken, readState, readOrders, mutateOrders, rateLimit, clientIp,
          sanitizeOrder, publicOrder, DN, CITIES, defaultDocs, nowRu, verifyInitData, notify } from './_lib.js';
 import { randomBytes } from 'node:crypto';
@@ -56,6 +56,15 @@ const handle = wrap(async req => {
     if (!ev) return errJson(400, 'Эта съёмка недоступна — обновите страницу и попробуйте снова');
     const evDates = Array.isArray(ev.dates) ? ev.dates : [];
     if (!evDates.includes(date)) return errJson(400, 'Выберите дату из предложенных — запись только на даты фото дня');
+    // прошедшие фото дни уходят в архив автоматически. Фронт скрывает прошедшие
+    // даты, но подстраховываемся и здесь: запись «в прошлое» не принимается
+    // (время московское — same as nowRu; 'sv-SE' даёт формат YYYY-MM-DD)
+    const dm = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(date);
+    if (dm) {
+      const iso = dm[3] + '-' + dm[2] + '-' + dm[1];
+      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' });
+      if (iso < today) return errJson(400, 'Эта дата уже прошла — выберите актуальную дату фото дня');
+    }
 
     // версии юридических документов фиксируем на сервере в момент записи
     const docs = st && st.docs && typeof st.docs === 'object' ? st.docs : defaultDocs();
@@ -114,32 +123,6 @@ const handle = wrap(async req => {
     if (!user || !user.id) return errJson(401, 'Не удалось подтвердить Telegram-аккаунт');
     const list = (await readOrders()).filter(o => o && o.user && o.user.id === user.id);
     return json({ ok: true, orders: list.map(publicOrder) });
-  }
-
-  // ——— тестовая оплата клиентом (по id + секретному ключу) ——————————————————————
-  if (body.action === 'pay') {
-    // лимит против спама платежами: каждая попытка дёргает уведомление фотографу
-    if (!rateLimit('pay:' + clientIp(req), 30, 60 * 60 * 1000)) return errJson(429, 'Слишком много попыток оплаты — попробуйте позже');
-    const id = asInt(body.id);
-    const k = String(body.k || '');
-    if (!id || !K_RE.test(k)) return errJson(400, 'Некорректный запрос');
-    let updated = null;
-    await mutateOrders(orders => {
-      const o = orders.find(x => x.id === id && x.k === k);
-      if (!o) return null;
-      if (o.status === 'Ожидает оплаты') {
-        o.paid = o.first == null ? 0 : o.first;
-        o.pay = 'Успешен (ТЕСТ)';
-        o.status = 'Оплачен, ожидает консультации';
-        o.log = o.log || [];
-        o.log.unshift(nowRu() + ' — Тестовый платёж ' + (o.paid || 0) + ' ₽ — не реальные деньги');
-      }
-      updated = o;
-      return again => again.some(x => x.id === id && x.k === k);
-    });
-    if (!updated) return errJson(404, 'Заявка не найдена');
-    notify(`💳 Тестовый платёж по заявке №${id} (${updated.total || 0} ₽). Реальные деньги не списываются.`).catch(() => {});
-    return json({ ok: true, order: publicOrder(updated) });
   }
 
   // ——— сохранение правок заявки админкой ————————————————————————————————————————
